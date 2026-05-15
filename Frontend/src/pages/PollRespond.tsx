@@ -175,7 +175,11 @@ function LoginWall({ pollTitle }: { pollTitle: string }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25, duration: 0.5 }}
       >
-        <SignIn routing="hash" />
+        <SignIn
+          routing="hash"
+          forceRedirectUrl={window.location.href}
+          signUpForceRedirectUrl={window.location.href}
+        />
       </motion.div>
     </div>
   );
@@ -186,20 +190,20 @@ export default function PollRespond() {
   const { pollId } = useParams<{ pollId: string }>();
   // const navigate   = useNavigate();
   const { isSignedIn, isLoaded } = useAuth();
-  const authFetch  = useAuthFetch();
+  const authFetch = useAuthFetch();
 
-  const [poll, setPoll]             = useState<Poll | null>(null);
-  const [loading, setLoading]       = useState(true);
+  const [poll, setPoll] = useState<Poll | null>(null);
+  const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
 
   // answers: questionId → selectedOptionId
-  const [answers, setAnswers]         = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   // per-question validation errors
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   // global submission error
   const [submitError, setSubmitError] = useState("");
-  const [submitting, setSubmitting]   = useState(false);
-  const [submitted, setSubmitted]     = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     api
@@ -232,7 +236,7 @@ export default function PollRespond() {
 
   if (!poll) return null;
 
-  const expired     = new Date() > new Date(poll.expiresAt);
+  const expired = new Date() > new Date(poll.expiresAt);
   const isPublished = poll.isPublished;
 
   if (expired && !isPublished) {
@@ -391,7 +395,7 @@ export default function PollRespond() {
   };
 
   const mandatoryCount = poll.questions.filter((q) => q.isMandatory).length;
-  const optionalCount  = poll.questions.length - mandatoryCount;
+  const optionalCount = poll.questions.length - mandatoryCount;
 
   // ── Render ────────────────────────────────────────────────────────────
   return (
@@ -549,13 +553,12 @@ export default function PollRespond() {
                 }}
                 style={{
                   background: "var(--card)",
-                  border: `1.5px solid ${
-                    hasError
+                  border: `1.5px solid ${hasError
                       ? "#FF4D00"
                       : isAnswered
-                      ? "var(--accent)"
-                      : "var(--border)"
-                  }`,
+                        ? "var(--accent)"
+                        : "var(--border)"
+                    }`,
                   borderRadius: "16px",
                   padding: "22px",
                   transition: "border-color 0.2s ease",
@@ -610,11 +613,10 @@ export default function PollRespond() {
                         background: hasError
                           ? "color-mix(in srgb, #FF4D00 15%, transparent)"
                           : "color-mix(in srgb, var(--accent) 12%, transparent)",
-                        border: `1px solid ${
-                          hasError
+                        border: `1px solid ${hasError
                             ? "color-mix(in srgb, #FF4D00 35%, transparent)"
                             : "color-mix(in srgb, var(--accent) 30%, transparent)"
-                        }`,
+                          }`,
                         color: hasError ? "#FF4D00" : "var(--accent)",
                       }}
                     >
@@ -676,9 +678,8 @@ export default function PollRespond() {
                           gap: "12px",
                           padding: "12px 16px",
                           borderRadius: "10px",
-                          border: `1.5px solid ${
-                            selected ? "var(--accent)" : "var(--border)"
-                          }`,
+                          border: `1.5px solid ${selected ? "var(--accent)" : "var(--border)"
+                            }`,
                           background: selected
                             ? "color-mix(in srgb, var(--accent) 8%, var(--card))"
                             : "var(--bg)",
@@ -767,11 +768,10 @@ export default function PollRespond() {
           >
             <motion.div
               animate={{
-                width: `${
-                  poll.questions.length > 0
+                width: `${poll.questions.length > 0
                     ? (Object.keys(answers).length / poll.questions.length) * 100
                     : 0
-                }%`,
+                  }%`,
               }}
               transition={{ type: "spring", stiffness: 100, damping: 20 }}
               style={{
