@@ -12,7 +12,7 @@ const app:Application = express();
 
 const allowedOrigins = [
   'https://pulse-board-saurabhworkspace123-8359s-projects.vercel.app', // Production
-  'https://pulse-board-10ddcaqjy-saurabhworkspace123-8359s-projects.vercel.app/',
+  'https://pulse-board-10ddcaqjy-saurabhworkspace123-8359s-projects.vercel.app',
   'http://localhost:5173' // Local development
 ];
 
