@@ -10,7 +10,20 @@ import userRoutes from "./routes/user.routes.js"
 
 const app:Application = express();
 
-app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
+const allowedOrigins = [
+  'https://pulse-board-saurabhworkspace123-8359s-projects.vercel.app', // Production
+  'https://pulse-board-10ddcaqjy-saurabhworkspace123-8359s-projects.vercel.app/',
+  'http://localhost:5173' // Local development
+];
+
+app.use(cors({ 
+  // origin: process.env.CLIENT_URL,
+  origin: [
+    'https://pulse-board-saurabhworkspace123-8359s-projects.vercel.app',
+    'https://pulse-board-10ddcaqjy-saurabhworkspace123-8359s-projects.vercel.app'
+  ],
+  credentials: true 
+}));
 app.use(express.json());
 app.use(clerkMiddleware())
 
