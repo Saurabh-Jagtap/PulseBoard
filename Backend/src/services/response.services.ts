@@ -1,5 +1,5 @@
 import { db } from "../db/index.js";
-import { responses, answers, polls, users } from "../db/schema.js";
+import { responses, answers, polls, options, users } from "../db/schema.js";
 import { eq, and, count } from "drizzle-orm";
 import { ApiError } from "../utils/ApiError.js";
 import type { SubmitResponseDTO } from "../common/DTO/response.dto.js";
@@ -36,6 +36,7 @@ export const submitResponse = async (
       "This poll requires you to sign in before responding"
     );
   }
+
 
   if (clerkUserId) {
     const userRecord = await db.query.users.findFirst({
@@ -152,8 +153,8 @@ export const submitResponse = async (
 
     await tx.insert(answers).values(
       data.answers.map((a) => ({
-        responseId: response.id,
-        questionId: a.questionId,
+        responseId:       response.id,
+        questionId:       a.questionId,
         selectedOptionId: a.selectedOptionId,
       }))
     );

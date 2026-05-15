@@ -93,7 +93,7 @@ export default function PollCard({ poll, onCopyLink, onPublish, copied = false }
         </div>
 
         {/* right — actions */}
-        <div className="flex flex-col gap-2 shrink-0">
+        <div className="flex flex-col gap-2 flex-shrink-0">
           <button
             onClick={() => navigate(`/analytics/${poll.id}`)}
             className="text-xs border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 text-gray-700"
