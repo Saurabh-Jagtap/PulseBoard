@@ -1,0 +1,8 @@
+# pnpm-workspace.yaml
+packages:
+  - 'Backend'
+  - 'Frontend'
+
+# This allows tsx to work properly
+allowBuilds:
+  esbuild: true

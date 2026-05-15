@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: pulseboard_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     pulseboard
+      POSTGRES_PASSWORD: pulseboard_secret
+      POSTGRES_DB:       pulseboard_db
+    ports:
+      - "5432:5432"        # localhost:5432 → container:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data   # data persists across restarts
+
+volumes:
+  postgres_data:
