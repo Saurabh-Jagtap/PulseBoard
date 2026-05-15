@@ -6,9 +6,18 @@ let io: Server;
 export const initSocket = (server: HttpServer): void => {
   io = new Server(server, {
     cors: {
-      origin:  process.env.CLIENT_URL,
+      origin: (origin, callback) => {
+        const allowed = process.env.CLIENT_URL?.replace(/\/$/, ""); // Remove trailing slash
+        if (!origin || origin === allowed || origin.endsWith(".vercel.app")) {
+          callback(null, true);
+        } else {
+          callback(new Error("CORS blocked by Socket.io"));
+        }
+      },
       methods: ["GET", "POST"],
+      credentials: true,
     },
+    pingTimeout: 60000,
   });
 
   io.on("connection", (socket) => {

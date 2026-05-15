@@ -5,7 +5,12 @@ export const useSocket = (pollId: string, onNewResponse: (data: { totalResponses
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    const socket = io(import.meta.env.VITE_API_URL);
+    const socket = io(import.meta.env.VITE_API_URL, {
+      transports: ["websocket"], // 1. Skip polling, go straight to WebSockets
+      withCredentials: true,    // 2. Allow cookies/headers to pass through
+    });
+
+    // const socket = io(import.meta.env.VITE_API_URL);
     socketRef.current = socket;
 
     socket.emit("join-poll", pollId);
