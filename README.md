@@ -5,7 +5,7 @@ PulseBoard is a high-performance, real-time polling ecosystem built for creators
 In an era of notification fatigue, PulseBoard offers a distraction-free "heartbeat" of audience sentiment, ensuring that every 
 vote is captured and reflected instantly across the globe.
 
-[Live Demo](pulse-board-j6w8hwg71-saurabhworkspace123-8359s-projects.vercel.app) | [Backend API](https://pulseboard-vvin.onrender.com)
+[Live Demo](https://pulse-board-j6w8hwg71-saurabhworkspace123-8359s-projects.vercel.app) | [Backend API](https://pulseboard-vvin.onrender.com)
 ---
 
 <img width="500" alt="pulse1" src="https://github.com/user-attachments/assets/d13ed3f7-4960-4de4-b839-d21ee31d4a1e" /> 
