@@ -1,5 +1,5 @@
 import { db } from "../db/index.js";
-import { responses, answers, polls, options } from "../db/schema.js";
+import { responses, answers, polls, users } from "../db/schema.js";
 import { eq, and, count } from "drizzle-orm";
 import { ApiError } from "../utils/ApiError.js";
 import type { SubmitResponseDTO } from "../common/DTO/response.dto.js";
@@ -35,6 +35,23 @@ export const submitResponse = async (
       401,
       "This poll requires you to sign in before responding"
     );
+  }
+
+  // NEW: If we have a clerkUserId, verify they exist in our users table.
+  // Handles the case where the user was deleted from our DB but their
+  // Clerk session token is still technically valid.
+  if (clerkUserId) {
+    const userExists = await db.query.users.findFirst({
+      where: eq(users.clerkId, clerkUserId),
+      columns: { id: true }, // only fetch what we need — keep it cheap
+    });
+
+    if (!userExists) {
+      throw new ApiError(
+        401,
+        "Your account no longer exists. Please sign up again."
+      );
+    }
   }
 
   // 4. ----- MANDATORY QUESTION VALIDATION (backend) -----
@@ -140,8 +157,8 @@ export const submitResponse = async (
 
     await tx.insert(answers).values(
       data.answers.map((a) => ({
-        responseId:       response.id,
-        questionId:       a.questionId,
+        responseId: response.id,
+        questionId: a.questionId,
         selectedOptionId: a.selectedOptionId,
       }))
     );

@@ -4,6 +4,9 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import * as pollService from "../services/poll.services.js";
 import { getAuth } from "@clerk/express";
+import { db } from "../db/index.js";
+import { eq } from "drizzle-orm";
+import { users } from "../db/schema.js";
 
 const getPollId = (req: Request): string => {
   const { pollId } = req.params;
@@ -38,6 +41,25 @@ export const getPollById = async (req: Request, res: Response): Promise<void> =>
 
   const poll = await pollService.getPollById(pollId);
   if (!poll) throw new ApiError(404, "Poll not found");
+
+  // If poll requires auth, verify the caller 
+  if (!poll.isAnonymous) {
+    const { userId } = getAuth(req);
+
+    if (!userId) {
+      throw new ApiError(401, "Sign in to view this poll");
+    }
+
+    // Ghost-user guard: Clerk token is valid but user was deleted from our DB
+    const userExists = await db.query.users.findFirst({
+      where: eq(users.clerkId, userId),
+      columns: { id: true },
+    });
+
+    if (!userExists) {
+      throw new ApiError(401, "Your account no longer exists. Please sign up again.");
+    }
+  }
   res.status(200).json(new ApiResponse(200, poll));
 }
 
