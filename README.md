@@ -114,4 +114,8 @@ pnpm run dev
 - **Embeddable Widgets:** Allow creators to drop a PulseBoard poll into their own blogs or portfolios via an iframe or Web Component.
 
 PulseBoard was built with ⚡ and ☕ for the Chaicode Cohort Hackathon.
-**Build in Public:** Follow the journey on [Twitter/X] or [LinkedIn].
+**Build in Public:** Follow the journey on [Twitter/X](https://x.com/SaurabhJag004) or [LinkedIn](www.linkedin.com/in/saurabh-jagtap-084893287).
+
+Live Link - https://pulse-board-j6w8hwg71-saurabhworkspace123-8359s-projects.vercel.app
+
+Backend(Render) Link - https://pulseboard-vvin.onrender.com
