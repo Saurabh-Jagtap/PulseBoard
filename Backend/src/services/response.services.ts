@@ -37,20 +37,15 @@ export const submitResponse = async (
     );
   }
 
-  // NEW: If we have a clerkUserId, verify they exist in our users table.
-  // Handles the case where the user was deleted from our DB but their
-  // Clerk session token is still technically valid.
   if (clerkUserId) {
-    const userExists = await db.query.users.findFirst({
+    const userRecord = await db.query.users.findFirst({
       where: eq(users.clerkId, clerkUserId),
-      columns: { id: true }, // only fetch what we need — keep it cheap
     });
 
-    if (!userExists) {
-      throw new ApiError(
-        403,
-        "Your account no longer exists. Please sign up again."
-      );
+    if (!userRecord) {
+      // If you don't want to insert manually, we must still stop the vote
+      // because the 'respondentId' in the responses table depends on this user.
+      throw new ApiError(403, "User profile not synced. Please refresh and try again.");
     }
   }
 
