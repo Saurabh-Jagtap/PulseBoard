@@ -262,11 +262,13 @@ interface PollCardProps {
   poll: Poll;
   onCopyLink: (id: string) => void;
   onPublish: (id: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
   copied?: boolean;
 }
 
-function PollCard({ poll, onCopyLink, onPublish, copied }: PollCardProps) {
+function PollCard({ poll, onCopyLink, onPublish, onDelete, copied }: PollCardProps) {
   const [publishing, setPublishing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
   const expired = new Date() > new Date(poll.expiresAt);
 
@@ -277,6 +279,13 @@ function PollCard({ poll, onCopyLink, onPublish, copied }: PollCardProps) {
     } finally {
       setPublishing(false);
     }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Delete "${poll.title}"? This cannot be undone.`)) return;
+    setDeleting(true);
+    try { await onDelete(poll.id); }
+    finally { setDeleting(false); }
   };
 
   const relativeDate = (dateStr: string) => {
@@ -314,9 +323,8 @@ function PollCard({ poll, onCopyLink, onPublish, copied }: PollCardProps) {
         >
           <h3 className="pb-poll-card__title">{poll.title}</h3>
           <span
-            className={`pb-pill ${
-              expired ? "pb-pill--inactive" : "pb-pill--active"
-            }`}
+            className={`pb-pill ${expired ? "pb-pill--inactive" : "pb-pill--active"
+              }`}
           >
             <span
               style={{
@@ -348,11 +356,12 @@ function PollCard({ poll, onCopyLink, onPublish, copied }: PollCardProps) {
       </div>
 
       <div className="pb-poll-card__actions">
+        {/* ----- COPY BUTTON ----- */}
         <motion.button
           className="pb-btn pb-btn--ghost"
           onClick={() => onCopyLink(poll.id)}
           whileTap={{ scale: 0.95 }}
-          style={{ 
+          style={{
             fontSize: 13,
             color: copied ? "var(--accent)" : "inherit",
             borderColor: copied ? "var(--accent)" : "transparent"
@@ -381,6 +390,7 @@ function PollCard({ poll, onCopyLink, onPublish, copied }: PollCardProps) {
           Results
         </motion.button>
 
+        {/* ----- PUBLISH BUTTON ----- */}
         {!poll.isPublished && (
           <motion.button
             className="pb-btn pb-btn--primary"
@@ -392,6 +402,38 @@ function PollCard({ poll, onCopyLink, onPublish, copied }: PollCardProps) {
             {publishing ? "Publishing…" : "Publish"}
           </motion.button>
         )}
+
+        {/* ----- DELETE BUTTON ----- */}
+        <motion.button
+          className="pb-btn pb-btn--ghost"
+          onClick={handleDelete}
+          disabled={deleting}
+          whileTap={{ scale: 0.95 }}
+          style={{
+            fontSize: 13,
+            color: deleting ? "var(--muted)" : "#e53e3e",
+            borderColor: "transparent",
+          }}
+          title="Delete poll"
+          aria-label="Delete poll"
+        >
+          {deleting ? (
+            <motion.span
+              animate={{ rotate: 360 }}
+              transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+              style={{ display: "inline-block", fontSize: 13 }}
+            >
+              ◌
+            </motion.span>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6M14 11v6" />
+              <path d="M9 6V4h6v2" />
+            </svg>
+          )}
+        </motion.button>
       </div>
     </motion.div>
   );
@@ -416,10 +458,10 @@ export default function Dashboard() {
   }, []);
 
   const copyLink = (id: string) => {
-  navigator.clipboard.writeText(`${window.location.origin}/poll/${id}`);
-  setCopiedId(id);
-  setTimeout(() => setCopiedId(null), 2000);
-};
+    navigator.clipboard.writeText(`${window.location.origin}/poll/${id}`);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   const handlePublish = useCallback(
     async (id: string) => {
@@ -427,6 +469,15 @@ export default function Dashboard() {
       setPolls((prev) =>
         prev.map((p) => (p.id === id ? { ...p, isPublished: true } : p))
       );
+    },
+    [authFetch]
+  );
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      await authFetch.delete(`/api/polls/${id}`);
+      // AnimatePresence + mode="popLayout" handles the exit animation automatically
+      setPolls((prev) => prev.filter((p) => p.id !== id));
     },
     [authFetch]
   );
@@ -582,6 +633,7 @@ export default function Dashboard() {
                     copied={copiedId === poll.id}
                     onCopyLink={copyLink}
                     onPublish={handlePublish}
+                    onDelete={handleDelete}
                   />
                 ))}
               </AnimatePresence>
