@@ -14,13 +14,14 @@ app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 app.use(express.json());
 app.use(clerkMiddleware())
 
+// health check
+app.get("/health", (req: Request, res: Response) => res.json({ status: "ok" }));
+
 app.use("/api/users", userRoutes);
 app.use("/api/polls", pollRoutes);
 app.use("/api/respond", responseRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
-// health check
-app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
 // global error handler
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
