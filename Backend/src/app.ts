@@ -18,10 +18,19 @@ const allowedOrigins = [
 
 app.use(cors({ 
   // origin: process.env.CLIENT_URL,
-  origin: [
-    'https://pulse-board-saurabhworkspace123-8359s-projects.vercel.app',
-    'https://pulse-board-10ddcaqjy-saurabhworkspace123-8359s-projects.vercel.app'
-  ],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    
+    const isVercelPreview = origin.endsWith('vercel.app');
+    const isAllowed = allowedOrigins.indexOf(origin) !== -1;
+
+    if (isAllowed || isVercelPreview) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true 
 }));
 app.use(express.json());
