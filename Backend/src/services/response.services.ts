@@ -48,7 +48,7 @@ export const submitResponse = async (
 
     if (!userExists) {
       throw new ApiError(
-        401,
+        403,
         "Your account no longer exists. Please sign up again."
       );
     }
