@@ -7,6 +7,7 @@ import analyticsRoutes from "./routes/analytics.routes.js";
 import { ApiError } from "./utils/ApiError.js";
 import { clerkMiddleware } from '@clerk/express'
 import userRoutes from "./routes/user.routes.js"
+import webhookRoutes from "./routes/webhook.routes.js";
 
 const app:Application = express();
 
@@ -33,6 +34,15 @@ app.use(cors({
   },
   credentials: true 
 }));
+
+// Webhook route MUST come before express.json() 
+// express.json() consumes the raw body svix needs it unconsumed
+app.use(
+  "/api/webhooks/clerk",
+  express.raw({ type: "application/json" }),  // parse as raw Buffer
+  webhookRoutes
+);
+
 // health check
 app.get("/health", (req: Request, res: Response) => res.json({ status: "ok" }));
 

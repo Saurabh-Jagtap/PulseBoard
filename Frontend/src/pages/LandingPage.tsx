@@ -221,7 +221,7 @@ const LandingPage: React.FC = () => {
   const navigate = useNavigate();
 
   // Theme
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>("dark");
 
   // Cursor
   const cursorRef = useRef<HTMLDivElement>(null);

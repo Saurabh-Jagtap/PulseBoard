@@ -6,6 +6,7 @@ import api from "../services/api.js";
 import { useAuthFetch } from "../hooks/useAuthFetch.js";
 import CountdownTimer from "../components/CountDownTimer.js";
 
+const REDIRECT_KEY = "pb_post_auth_redirect";
 interface Option {
   id: string;
   optionText: string;
@@ -188,8 +189,15 @@ function Confetti() {
 // ── Vote Gate — shown inline when poll requires auth + user not signed in ──────
 // Shows a "sign in to vote" CTA instead of hijacking the whole page
 function VoteGate({ pollId }: { pollId: string }) {
-  const redirectUrl = encodeURIComponent(`/poll/${pollId}`);
-  const signInUrl = `/sign-in?redirect=${redirectUrl}`;
+  const pollPath = `/poll/${pollId}`;
+
+  const handleSignInClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    // Save the destination before leaving — survives email verification
+    sessionStorage.setItem(REDIRECT_KEY, pollPath);
+    // Include it as a query param too, for returning users who skip verification
+    window.location.href = `/sign-in?redirect=${encodeURIComponent(pollPath)}`;
+  };
 
   return (
     <motion.div
@@ -254,7 +262,8 @@ function VoteGate({ pollId }: { pollId: string }) {
       </p>
 
       <motion.a
-        href={signInUrl}
+        href={`/sign-in?redirect=${encodeURIComponent(pollPath)}`}
+        onClick={handleSignInClick}
         whileHover={{ y: -1 }}
         whileTap={{ scale: 0.97 }}
         transition={{ type: "spring", stiffness: 400, damping: 20 }}

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams, useNavigate } from "react-router-dom";
 import { SignIn, SignUp, useAuth } from "@clerk/react";
 import { useEffect } from "react";
 import { useAuthFetch } from "./hooks/useAuthFetch.js";
@@ -9,41 +9,92 @@ import Analytics from "./pages/Analytics.js";
 import PollResults from "./pages/PollResults.js";
 import LandingPage from "./pages/LandingPage.js";
 
+// ----- Constants -----
+const REDIRECT_KEY = "pb_post_auth_redirect";
+
+// ----- Helpers -----
+function saveRedirect(path: string) {
+  sessionStorage.setItem(REDIRECT_KEY, path);
+}
+
+function consumeRedirect(): string | null {
+  const val = sessionStorage.getItem(REDIRECT_KEY);
+  if (val) sessionStorage.removeItem(REDIRECT_KEY);
+  return val;
+}
+
+// ----- Protected Route -----
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isSignedIn, isLoaded } = useAuth();
-  if (!isLoaded) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
-      Loading...
-    </div>
-  );
+
+  if (!isLoaded) {
+    return (
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        minHeight: "100vh", background: "var(--bg)",
+        fontFamily: "'DM Sans', sans-serif", color: "var(--muted)",
+      }}>
+        Loading…
+      </div>
+    );
+  }
+
   if (!isSignedIn) return <Navigate to="/sign-in" replace />;
   return <>{children}</>;
 };
 
-// reads ?redirect= param and forwards it to Clerk's afterSignInUrl
+// ----- Sign-in page -----
+// Reads ?redirect= from the URL and:
+// 1. Passes it to Clerk as fallbackRedirectUrl (works for login)
+// 2. Saves it to sessionStorage (survives email verification for sign-up)
 function SignInPage() {
   const [params] = useSearchParams();
   const redirectTo = params.get("redirect") ?? "/dashboard";
 
+  // Always persist to sessionStorage so the post-auth handler in App
+  // can pick it up regardless of whether it was login or sign-up
+  useEffect(() => {
+    if (redirectTo && redirectTo !== "/dashboard") {
+      saveRedirect(redirectTo);
+    }
+  }, [redirectTo]);
+
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "var(--bg)" }}>
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "center",
+      minHeight: "100vh", background: "var(--bg)",
+    }}>
       <SignIn
         routing="path"
         path="/sign-in"
-        // after sign-in, go back to where they came from
+        // For returning users: Clerk reads this and redirects immediately
         fallbackRedirectUrl={redirectTo}
+        // When "Don't have an account?" is clicked, preserve the redirect param
         signUpUrl={`/sign-up?redirect=${encodeURIComponent(redirectTo)}`}
       />
     </div>
   );
 }
 
+// ----- Sign-up page -----
 function SignUpPage() {
   const [params] = useSearchParams();
   const redirectTo = params.get("redirect") ?? "/dashboard";
 
+  // Same persistence — after email verification Clerk will land back
+  // on /sign-up (or /dashboard), and our App-level handler will pick
+  // up sessionStorage and navigate to the intended destination
+  useEffect(() => {
+    if (redirectTo && redirectTo !== "/dashboard") {
+      saveRedirect(redirectTo);
+    }
+  }, [redirectTo]);
+
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "var(--bg)" }}>
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "center",
+      minHeight: "100vh", background: "var(--bg)",
+    }}>
       <SignUp
         routing="path"
         path="/sign-up"
@@ -54,32 +105,56 @@ function SignUpPage() {
   );
 }
 
-export default function App() {
+// ----- Post-auth redirect handler -----
+// Runs once when isSignedIn flips to true.
+// Checks sessionStorage for a saved destination and navigates there.
+// This is what fixes the new-user email-verification case.
+function useAuthHandler() {
   const { isSignedIn, isLoaded } = useAuth();
   const authFetch = useAuthFetch();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (isSignedIn && isLoaded) {
-      authFetch.post("/api/users/sync").catch(console.error);
-    }
+    if (!isLoaded || !isSignedIn) return;
+
+    const destination = consumeRedirect(); // read before async work
+
+    // Sync first — always. Upsert is idempotent so safe to call every sign-in.
+    authFetch
+      .post("/api/users/sync")
+      .catch(console.error) // don't block redirect if sync fails
+      .finally(() => {
+        // Navigate only after sync attempt completes
+        if (destination) {
+          navigate(destination, { replace: true });
+        }
+      });
   }, [isSignedIn, isLoaded]);
+}
+
+function AppShell() {
+  useAuthHandler(); // single hook, correct order
 
   return (
+    <Routes>
+      <Route path="/sign-in/*" element={<SignInPage />} />
+      <Route path="/sign-up/*" element={<SignUpPage />} />
+      <Route path="/poll/:pollId" element={<PollRespond />} />
+      <Route path="/poll/:pollId/results" element={<PollResults />} />
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/create" element={<ProtectedRoute><CreatePoll /></ProtectedRoute>} />
+      <Route path="/analytics/:pollId" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+// ----- Root export -----
+export default function App() {
+  return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/sign-in" element={<SignInPage />} />
-        <Route path="/sign-up" element={<SignUpPage />} />
-
-        <Route path="/poll/:pollId" element={<PollRespond />} />
-        <Route path="/poll/:pollId/results" element={<PollResults />} />
-
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/create" element={<ProtectedRoute><CreatePoll /></ProtectedRoute>} />
-        <Route path="/analytics/:pollId" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <AppShell />
     </BrowserRouter>
   );
 }
