@@ -5,8 +5,27 @@ PulseBoard is a high-performance, real-time polling ecosystem built for creators
 In an era of notification fatigue, PulseBoard offers a distraction-free "heartbeat" of audience sentiment, ensuring that every 
 vote is captured and reflected instantly across the globe.
 
-Live Demo | Backend API
+[Live Demo](https://pulse-board-j6w8hwg71-saurabhworkspace123-8359s-projects.vercel.app) | [Backend API](https://pulseboard-vvin.onrender.com)
 ---
+
+<img width="500" alt="pulse1" src="https://github.com/user-attachments/assets/d13ed3f7-4960-4de4-b839-d21ee31d4a1e" /> 
+<img width="500" alt="pulse7" src="https://github.com/user-attachments/assets/021a4a37-455e-44f9-bed6-fbf6c1499cdb" />
+
+<details>
+  <summary>Click to view all 10 screenshots</summary>
+    <img width="500" alt="pulse2" src="https://github.com/user-attachments/assets/be91d2ce-fa58-4705-a6ac-afedd7ffe869" />
+
+<img width="500" alt="pulse3" src="https://github.com/user-attachments/assets/a9780818-c240-4aab-a759-a2abc167b186" />
+<img width="500" alt="pulse4" src="https://github.com/user-attachments/assets/d6632e0f-021b-4464-944d-bd9f8fb02b10" />
+
+<img width="500" alt="pulse5" src="https://github.com/user-attachments/assets/b75101e5-46d4-4b86-9005-94f617d2f587" />
+<img width="500" alt="pulse6" src="https://github.com/user-attachments/assets/4b7d13b8-93f0-4744-a4d1-58b03a400b49" />
+<img width="500" alt="pulse8" src="https://github.com/user-attachments/assets/b12bd4ad-073f-4956-916d-ce3b7c44c18c" />
+<img width="500" alt="pulse10" src="https://github.com/user-attachments/assets/e40e2e3c-e5eb-4fee-a177-ae5d9f840f23" />
+<img width="400" alt="pulse9" src="https://github.com/user-attachments/assets/df538fc3-d263-40b5-8bbc-9d5300f66a7a" />
+</details>
+
+
 # 📖 The Project Story: The Quest for the "Live State"
 The biggest challenge in building PulseBoard wasn't just collecting votes—it was the synchronization of truth.
 
@@ -95,4 +114,8 @@ pnpm run dev
 - **Embeddable Widgets:** Allow creators to drop a PulseBoard poll into their own blogs or portfolios via an iframe or Web Component.
 
 PulseBoard was built with ⚡ and ☕ for the Chaicode Cohort Hackathon.
-**Build in Public:** Follow the journey on [Twitter/X] or [LinkedIn].
+**Build in Public:** Follow the journey on [Twitter/X](https://x.com/SaurabhJag004) or [LinkedIn](www.linkedin.com/in/saurabh-jagtap-084893287).
+
+Live Link - https://pulse-board-j6w8hwg71-saurabhworkspace123-8359s-projects.vercel.app
+
+Backend(Render) Link - https://pulseboard-vvin.onrender.com
