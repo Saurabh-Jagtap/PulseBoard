@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useAuth, SignIn } from "@clerk/react";
+import { useAuth } from "@clerk/react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../services/api.js";
 import { useAuthFetch } from "../hooks/useAuthFetch.js";
@@ -82,106 +82,205 @@ function Confetti() {
 }
 
 // ── Login wall — shown when poll requires auth but user is not signed in ───────
-function LoginWall({ pollTitle }: { pollTitle: string }) {
+// function LoginWall({ pollTitle }: { pollTitle: string }) {
+//   return (
+//     <div
+//       style={{
+//         minHeight: "100vh",
+//         background: "var(--bg)",
+//         display: "flex",
+//         flexDirection: "column",
+//         alignItems: "center",
+//         justifyContent: "center",
+//         padding: "40px 24px",
+//         gap: "32px",
+//       }}
+//     >
+//       <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');`}</style>
+
+//       <motion.div
+//         initial={{ opacity: 0, y: 24 }}
+//         animate={{ opacity: 1, y: 0 }}
+//         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+//         style={{ textAlign: "center", maxWidth: "420px" }}
+//       >
+//         {/* lock icon */}
+//         <motion.div
+//           initial={{ scale: 0.5, opacity: 0 }}
+//           animate={{ scale: 1, opacity: 1 }}
+//           transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
+//           style={{
+//             width: "64px",
+//             height: "64px",
+//             borderRadius: "18px",
+//             background: "color-mix(in srgb, var(--accent) 12%, var(--card))",
+//             border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+//             display: "flex",
+//             alignItems: "center",
+//             justifyContent: "center",
+//             fontSize: "28px",
+//             margin: "0 auto 24px",
+//           }}
+//         >
+//           🔒
+//         </motion.div>
+
+//         <p
+//           style={{
+//             fontFamily: "'DM Sans', sans-serif",
+//             fontSize: "11px",
+//             fontWeight: 600,
+//             letterSpacing: "0.1em",
+//             textTransform: "uppercase",
+//             color: "var(--accent)",
+//             marginBottom: "12px",
+//           }}
+//         >
+//           Sign in required
+//         </p>
+
+//         <h1
+//           style={{
+//             fontFamily: "'Syne', sans-serif",
+//             fontWeight: 800,
+//             fontSize: "clamp(20px, 4vw, 28px)",
+//             color: "var(--text)",
+//             lineHeight: 1.2,
+//             marginBottom: "12px",
+//           }}
+//         >
+//           This poll requires authentication
+//         </h1>
+
+//         <p
+//           style={{
+//             fontFamily: "'DM Sans', sans-serif",
+//             fontSize: "15px",
+//             color: "var(--muted)",
+//             lineHeight: 1.6,
+//             fontWeight: 300,
+//             marginBottom: "8px",
+//           }}
+//         >
+//           <strong style={{ color: "var(--text)", fontWeight: 500 }}>
+//             "{pollTitle}"
+//           </strong>{" "}
+//           only accepts responses from signed-in users. Please log in to continue.
+//         </p>
+//       </motion.div>
+
+//       {/* Clerk's sign-in component embedded inline */}
+//       <motion.div
+//         initial={{ opacity: 0, y: 16 }}
+//         animate={{ opacity: 1, y: 0 }}
+//         transition={{ delay: 0.25, duration: 0.5 }}
+//       >
+//         <SignIn
+//           routing="hash"
+//           forceRedirectUrl={window.location.href}
+//           signUpForceRedirectUrl={window.location.href}
+//         />
+//       </motion.div>
+//     </div>
+//   );
+// }
+
+// ── Vote Gate — shown inline when poll requires auth + user not signed in ──────
+// Shows a "sign in to vote" CTA instead of hijacking the whole page
+function VoteGate({ pollId }: { pollId: string }) {
+  const redirectUrl = encodeURIComponent(`/poll/${pollId}`);
+  const signInUrl = `/sign-in?redirect=${redirectUrl}`;
+
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       style={{
-        minHeight: "100vh",
-        background: "var(--bg)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "40px 24px",
-        gap: "32px",
+        marginTop: "24px",
+        padding: "28px",
+        borderRadius: "16px",
+        background: "var(--card)",
+        border: "1.5px solid color-mix(in srgb, var(--accent) 35%, var(--border))",
+        textAlign: "center",
       }}
     >
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');`}</style>
-
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        style={{ textAlign: "center", maxWidth: "420px" }}
+        initial={{ scale: 0.7, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
+        style={{
+          width: "48px",
+          height: "48px",
+          borderRadius: "14px",
+          background: "color-mix(in srgb, var(--accent) 12%, var(--card))",
+          border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "22px",
+          margin: "0 auto 16px",
+        }}
       >
-        {/* lock icon */}
-        <motion.div
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
-          style={{
-            width: "64px",
-            height: "64px",
-            borderRadius: "18px",
-            background: "color-mix(in srgb, var(--accent) 12%, var(--card))",
-            border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "28px",
-            margin: "0 auto 24px",
-          }}
-        >
-          🔒
-        </motion.div>
-
-        <p
-          style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: "11px",
-            fontWeight: 600,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            color: "var(--accent)",
-            marginBottom: "12px",
-          }}
-        >
-          Sign in required
-        </p>
-
-        <h1
-          style={{
-            fontFamily: "'Syne', sans-serif",
-            fontWeight: 800,
-            fontSize: "clamp(20px, 4vw, 28px)",
-            color: "var(--text)",
-            lineHeight: 1.2,
-            marginBottom: "12px",
-          }}
-        >
-          This poll requires authentication
-        </h1>
-
-        <p
-          style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: "15px",
-            color: "var(--muted)",
-            lineHeight: 1.6,
-            fontWeight: 300,
-            marginBottom: "8px",
-          }}
-        >
-          <strong style={{ color: "var(--text)", fontWeight: 500 }}>
-            "{pollTitle}"
-          </strong>{" "}
-          only accepts responses from signed-in users. Please log in to continue.
-        </p>
+        🔒
       </motion.div>
 
-      {/* Clerk's sign-in component embedded inline */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25, duration: 0.5 }}
+      <p
+        style={{
+          fontFamily: "'Syne', sans-serif",
+          fontWeight: 700,
+          fontSize: "16px",
+          color: "var(--text)",
+          marginBottom: "8px",
+        }}
       >
-        <SignIn
-          routing="hash"
-          forceRedirectUrl={window.location.href}
-          signUpForceRedirectUrl={window.location.href}
-        />
-      </motion.div>
-    </div>
+        Sign in to submit your vote
+      </p>
+
+      <p
+        style={{
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: "13px",
+          color: "var(--muted)",
+          fontWeight: 300,
+          lineHeight: 1.6,
+          marginBottom: "20px",
+          maxWidth: "320px",
+          margin: "0 auto 20px",
+        }}
+      >
+        This poll requires authentication. You can see the questions above —
+        sign in to record your response.
+      </p>
+
+      <motion.a
+        href={signInUrl}
+        whileHover={{ y: -1 }}
+        whileTap={{ scale: 0.97 }}
+        transition={{ type: "spring", stiffness: 400, damping: 20 }}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "12px 28px",
+          borderRadius: "100px",
+          background: "var(--accent)",
+          color: "var(--bg)",
+          fontFamily: "'Syne', sans-serif",
+          fontWeight: 700,
+          fontSize: "14px",
+          letterSpacing: "0.02em",
+          textDecoration: "none",
+          transition: "box-shadow 0.2s ease",
+        }}
+      >
+        Sign in to vote
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5"
+            strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </motion.a>
+    </motion.div>
   );
 }
 
@@ -274,9 +373,9 @@ export default function PollRespond() {
 
   // ── AUTH GATE ────────────────────────────────────────────────────────
   // Poll requires login and user is NOT signed in → show login wall
-  if (!poll.isAnonymous && !isSignedIn) {
-    return <LoginWall pollTitle={poll.title} />;
-  }
+  // if (!poll.isAnonymous && !isSignedIn) {
+  //   return <LoginWall pollTitle={poll.title} />;
+  // }
 
   // ── Success screen ────────────────────────────────────────────────────
   if (submitted) {
@@ -554,10 +653,10 @@ export default function PollRespond() {
                 style={{
                   background: "var(--card)",
                   border: `1.5px solid ${hasError
-                      ? "#FF4D00"
-                      : isAnswered
-                        ? "var(--accent)"
-                        : "var(--border)"
+                    ? "#FF4D00"
+                    : isAnswered
+                      ? "var(--accent)"
+                      : "var(--border)"
                     }`,
                   borderRadius: "16px",
                   padding: "22px",
@@ -614,8 +713,8 @@ export default function PollRespond() {
                           ? "color-mix(in srgb, #FF4D00 15%, transparent)"
                           : "color-mix(in srgb, var(--accent) 12%, transparent)",
                         border: `1px solid ${hasError
-                            ? "color-mix(in srgb, #FF4D00 35%, transparent)"
-                            : "color-mix(in srgb, var(--accent) 30%, transparent)"
+                          ? "color-mix(in srgb, #FF4D00 35%, transparent)"
+                          : "color-mix(in srgb, var(--accent) 30%, transparent)"
                           }`,
                         color: hasError ? "#FF4D00" : "var(--accent)",
                       }}
@@ -671,7 +770,7 @@ export default function PollRespond() {
                     return (
                       <motion.label
                         key={opt.id}
-                        whileTap={{ scale: 0.985 }}
+                        whileTap={(!poll.isAnonymous && !isSignedIn) ? {} : { scale: 0.985 }}
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -683,8 +782,10 @@ export default function PollRespond() {
                           background: selected
                             ? "color-mix(in srgb, var(--accent) 8%, var(--card))"
                             : "var(--bg)",
-                          cursor: "pointer",
-                          transition: "border-color 0.15s ease, background 0.15s ease",
+                          cursor: (!poll.isAnonymous && !isSignedIn) ? "default" : "pointer",
+                          opacity: (!poll.isAnonymous && !isSignedIn) ? 0.5 : 1,
+                          transition: "border-color 0.15s ease, background 0.15s ease, opacity 0.15s ease",
+                          pointerEvents: (!poll.isAnonymous && !isSignedIn) ? "none" : "auto",
                         }}
                       >
                         {/* custom radio */}
@@ -769,8 +870,8 @@ export default function PollRespond() {
             <motion.div
               animate={{
                 width: `${poll.questions.length > 0
-                    ? (Object.keys(answers).length / poll.questions.length) * 100
-                    : 0
+                  ? (Object.keys(answers).length / poll.questions.length) * 100
+                  : 0
                   }%`,
               }}
               transition={{ type: "spring", stiffness: 100, damping: 20 }}
@@ -787,7 +888,7 @@ export default function PollRespond() {
         </div>
 
         {/* submit button */}
-        <motion.button
+        {/* <motion.button
           onClick={handleSubmit}
           disabled={submitting}
           whileHover={{ y: -1 }}
@@ -811,23 +912,100 @@ export default function PollRespond() {
           }}
         >
           {submitting ? "Submitting…" : "Submit response"}
-        </motion.button>
+        </motion.button> */}
 
-        {/* anonymous disclaimer */}
-        {poll.isAnonymous && (
-          <p
-            style={{
-              textAlign: "center",
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: "12px",
-              color: "var(--muted)",
-              marginTop: "12px",
-              fontWeight: 300,
-            }}
-          >
-            Your identity will not be recorded.
-          </p>
+        {/* submit button — or vote gate if not signed in */}
+        {!poll.isAnonymous && !isSignedIn ? (
+          // show the poll questions read-only above, gate the submit
+          <VoteGate pollId={pollId!} />
+        ) : (
+          <>
+            {/* progress summary */}
+            <div
+              style={{
+                margin: "20px 0 12px",
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: "12px",
+                color: "var(--muted)",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <div
+                style={{
+                  flex: 1,
+                  height: "3px",
+                  background: "var(--border)",
+                  borderRadius: "100px",
+                  overflow: "hidden",
+                }}
+              >
+                <motion.div
+                  animate={{
+                    width: `${poll.questions.length > 0
+                      ? (Object.keys(answers).length / poll.questions.length) * 100
+                      : 0
+                      }%`,
+                  }}
+                  transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                  style={{
+                    height: "100%",
+                    background: "var(--accent)",
+                    borderRadius: "100px",
+                  }}
+                />
+              </div>
+              <span style={{ whiteSpace: "nowrap" }}>
+                {Object.keys(answers).length} / {poll.questions.length} answered
+              </span>
+            </div>
+
+            {/* submit button */}
+            <motion.button
+              onClick={handleSubmit}
+              disabled={submitting}
+              whileHover={{ y: -1 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 400, damping: 20 }}
+              style={{
+                width: "100%",
+                padding: "16px",
+                borderRadius: "14px",
+                background: submitting
+                  ? "color-mix(in srgb, var(--accent) 60%, transparent)"
+                  : "var(--accent)",
+                color: "var(--bg)",
+                fontFamily: "'Syne', sans-serif",
+                fontWeight: 700,
+                fontSize: "15px",
+                letterSpacing: "0.02em",
+                border: "none",
+                cursor: submitting ? "not-allowed" : "pointer",
+                transition: "background 0.2s ease",
+              }}
+            >
+              {submitting ? "Submitting…" : "Submit response"}
+            </motion.button>
+
+            {/* anonymous disclaimer */}
+            {poll.isAnonymous && (
+              <p
+                style={{
+                  textAlign: "center",
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: "12px",
+                  color: "var(--muted)",
+                  marginTop: "12px",
+                  fontWeight: 300,
+                }}
+              >
+                Your identity will not be recorded.
+              </p>
+            )}
+          </>
         )}
+
       </div>
     </div>
   );
