@@ -2,7 +2,6 @@ import React, {
   useState,
   useEffect,
   useRef,
-  useCallback,
 } from "react";
 import { motion, AnimatePresence, useScroll, useTransform, useSpring, LayoutGroup }
   from "framer-motion";
@@ -231,7 +230,7 @@ const LandingPage: React.FC = () => {
   const rx = useRef(0);
   const ry = useRef(0);
   const rafRef = useRef<number>(0);
-  const [cursorHover, setCursorHover] = useState(false);
+  // const [cursorHover, setCursorHover] = useState(false);
 
   // Active tab in mock dashboard
   const [activeTab, setActiveTab] = useState<TabId>("polls");
@@ -251,30 +250,68 @@ const LandingPage: React.FC = () => {
   const dashScaleSpring = useSpring(dashScale, { stiffness: 60, damping: 20 });
 
   // ── Cursor tracking ──────────────────────────────────────────────────────
+  // useEffect(() => {
+  //   const onMove = (e: MouseEvent) => { mx.current = e.clientX; my.current = e.clientY; };
+  //   window.addEventListener("mousemove", onMove);
+
+  //   const animate = () => {
+  //     rx.current += (mx.current - rx.current) * 0.12;
+  //     ry.current += (my.current - ry.current) * 0.12;
+  //     if (cursorRef.current) {
+  //       cursorRef.current.style.left = `${mx.current}px`;
+  //       cursorRef.current.style.top = `${my.current}px`;
+  //     }
+  //     if (ringRef.current) {
+  //       ringRef.current.style.left = `${rx.current}px`;
+  //       ringRef.current.style.top = `${ry.current}px`;
+  //     }
+  //     rafRef.current = requestAnimationFrame(animate);
+  //   };
+  //   rafRef.current = requestAnimationFrame(animate);
+
+  //   return () => {
+  //     window.removeEventListener("mousemove", onMove);
+  //     cancelAnimationFrame(rafRef.current);
+  //   };
+  // }, []);
   useEffect(() => {
-    const onMove = (e: MouseEvent) => { mx.current = e.clientX; my.current = e.clientY; };
-    window.addEventListener("mousemove", onMove);
+  const onMove = (e: MouseEvent) => {
+    mx.current = e.clientX;
+    my.current = e.clientY;
+  };
 
-    const animate = () => {
-      rx.current += (mx.current - rx.current) * 0.12;
-      ry.current += (my.current - ry.current) * 0.12;
-      if (cursorRef.current) {
-        cursorRef.current.style.left = `${mx.current}px`;
-        cursorRef.current.style.top = `${my.current}px`;
-      }
-      if (ringRef.current) {
-        ringRef.current.style.left = `${rx.current}px`;
-        ringRef.current.style.top = `${ry.current}px`;
-      }
-      rafRef.current = requestAnimationFrame(animate);
-    };
+  // Track hover state via DOM directly — no setState, no re-renders
+  const onMouseOver = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const isHoverable = target.closest("a, button, [data-hover]");
+    cursorRef.current?.classList.toggle("lp-cursor--hover", !!isHoverable);
+    ringRef.current?.classList.toggle("lp-cursor--hover", !!isHoverable);
+  };
+
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseover", onMouseOver);
+
+  const animate = () => {
+    rx.current += (mx.current - rx.current) * 0.12;
+    ry.current += (my.current - ry.current) * 0.12;
+    if (cursorRef.current) {
+      cursorRef.current.style.left = `${mx.current}px`;
+      cursorRef.current.style.top = `${my.current}px`;
+    }
+    if (ringRef.current) {
+      ringRef.current.style.left = `${rx.current}px`;
+      ringRef.current.style.top = `${ry.current}px`;
+    }
     rafRef.current = requestAnimationFrame(animate);
+  };
+  rafRef.current = requestAnimationFrame(animate);
 
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
+  return () => {
+    window.removeEventListener("mousemove", onMove);
+    window.removeEventListener("mouseover", onMouseOver);
+    cancelAnimationFrame(rafRef.current);
+  };
+}, []);
 
   // ── Mock data simulation loop ────────────────────────────────────────────
   useEffect(() => {
@@ -316,10 +353,10 @@ const LandingPage: React.FC = () => {
   }, []);
 
   // ── Hover helpers ────────────────────────────────────────────────────────
-  const onHoverEnter = useCallback(() => setCursorHover(true), []);
-  const onHoverLeave = useCallback(() => setCursorHover(false), []);
+  // const onHoverEnter = useCallback(() => setCursorHover(true), []);
+  // const onHoverLeave = useCallback(() => setCursorHover(false), []);
 
-  const hoverProps = { onMouseEnter: onHoverEnter, onMouseLeave: onHoverLeave };
+  // const hoverProps = { onMouseEnter: onHoverEnter, onMouseLeave: onHoverLeave };
 
   // ── Theme slider position ────────────────────────────────────────────────
   const sliderLeft = theme === "light" ? "4px" : "calc(50% + 2px)";
@@ -339,11 +376,11 @@ const LandingPage: React.FC = () => {
       {/* Custom cursor */}
       <div
         ref={cursorRef}
-        className={`lp-cursor${cursorHover ? " lp-cursor--hover" : ""}`}
+        className={`lp-cursor`}
       />
       <div
         ref={ringRef}
-        className={`lp-cursor-ring${cursorHover ? " lp-cursor--hover" : ""}`}
+        className={`lp-cursor-ring`}
       />
 
       {/* ── NAVIGATION ── */}
@@ -353,15 +390,15 @@ const LandingPage: React.FC = () => {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       >
-        <a className="lp-logo" href="/" {...hoverProps}>
+        <a className="lp-logo" href="/" >
           <span className="lp-logo-dot" />
           PulseBoard
         </a>
 
         <div className="lp-nav-center">
-          <a className="lp-nav-link" href="#features" {...hoverProps}>Features</a>
-          <a className="lp-nav-link" href="#dashboard" {...hoverProps}>Preview</a>
-          <a className="lp-nav-link" href="#how" {...hoverProps}>How it works</a>
+          <a className="lp-nav-link" href="#features" >Features</a>
+          <a className="lp-nav-link" href="#dashboard" >Preview</a>
+          <a className="lp-nav-link" href="#how" >How it works</a>
         </div>
 
         <div className="lp-nav-right">
@@ -370,7 +407,7 @@ const LandingPage: React.FC = () => {
             className="lp-theme-toggle"
             whileTap={{ scale: 0.96 }}
             transition={{ type: "spring", stiffness: 400, damping: 20 }}
-            {...hoverProps}
+            
           >
             <motion.div
               className="lp-theme-slider"
@@ -397,7 +434,7 @@ const LandingPage: React.FC = () => {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.96 }}
             transition={{ type: "spring", stiffness: 400, damping: 20 }}
-            {...hoverProps}
+            
           >
             Get started
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -452,7 +489,7 @@ const LandingPage: React.FC = () => {
               whileHover={{ y: -2, boxShadow: "0 12px 40px color-mix(in srgb, var(--accent) 40%, transparent)" }}
               whileTap={{ scale: 0.96 }}
               transition={{ type: "spring", stiffness: 400, damping: 20 }}
-              {...hoverProps}
+              
             >
               Start for free
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -465,7 +502,7 @@ const LandingPage: React.FC = () => {
               href="#dashboard"
               whileHover={{ x: 3 }}
               transition={{ type: "spring", stiffness: 400 }}
-              {...hoverProps}
+              
             >
               See it live ↓
             </motion.a>
@@ -563,7 +600,7 @@ const LandingPage: React.FC = () => {
               viewport={{ once: true, margin: "-40px" }}
               whileHover={{ y: -2 }}
               transition={{ type: "spring", stiffness: 300 }}
-              {...hoverProps}
+              
             >
               <div className="lp-feature-num">{f.num}</div>
               <div className="lp-feature-icon">{f.icon}</div>
@@ -631,7 +668,7 @@ const LandingPage: React.FC = () => {
                   <div
                     key={item.label}
                     className={`lp-mock-sidebar-item${item.active ? " active" : ""}`}
-                    {...hoverProps}
+                    data-hover
                   >
                     <span style={{ fontSize: 13 }}>{item.icon}</span>
                     <span>{item.label}</span>
@@ -665,7 +702,7 @@ const LandingPage: React.FC = () => {
                         key={tab}
                         className={`lp-tab${activeTab === tab ? " active" : ""}`}
                         onClick={() => setActiveTab(tab)}
-                        {...hoverProps}
+                        
                       >
                         {tab === "polls" ? "Active Polls" : "Live Analytics"}
                         {activeTab === tab && (
@@ -857,7 +894,7 @@ const LandingPage: React.FC = () => {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.96 }}
             transition={{ type: "spring", stiffness: 400, damping: 20 }}
-            {...hoverProps}
+            
           >
             Create a free poll
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -869,7 +906,7 @@ const LandingPage: React.FC = () => {
             className="lp-btn-ghost"
             href="#dashboard"
             whileHover={{ x: 3 }}
-            {...hoverProps}
+            
           >
             See the preview ↑
           </motion.a>
@@ -878,7 +915,7 @@ const LandingPage: React.FC = () => {
 
       {/* ── FOOTER ── */}
       <footer className="lp-footer">
-        <a className="lp-logo" href="/" {...hoverProps}>
+        <a className="lp-logo" href="/" >
           <span className="lp-logo-dot" />
           PulseBoard
         </a>
