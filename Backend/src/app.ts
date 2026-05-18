@@ -12,7 +12,7 @@ import webhookRoutes from "./routes/webhook.routes.js";
 const app:Application = express();
 
 const allowedOrigins = [
-  'https://pulseboard.saurabhjagtap.tech',  // custom production domain
+  'https://pulseboard.saurabhjagtap.tech',  // custom domain production
   'https://pulse-board-saurabhworkspace123-8359s-projects.vercel.app', // Production
   'https://pulse-board-10ddcaqjy-saurabhworkspace123-8359s-projects.vercel.app',
   'http://localhost:5173' // Local development
