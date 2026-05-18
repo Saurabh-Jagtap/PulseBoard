@@ -103,22 +103,12 @@ const INITIAL_MOCK: MockData = {
   polls: [
     {
       id: "p1",
-      title: "What is your go-to state management tool for real-time apps?",
+      title: "Is HTTP stateless?",
       responses: 47,
       options: [
-        { label: "Redis Pub/Sub", pct: 42 },
-        { label: "Socket.IO", pct: 38 },
-        { label: "Apache Kafka Streams", pct: 17 },
-      ],
-    },
-    {
-      id: "p2",
-      title: "What part of backend architecture is the most challenging to scale?",
-      responses: 23,
-      options: [
-        { label: "Database Concurrency", pct: 45 },
-        { label: "Real-time WebSocket Sync", pct: 30 },
-        { label: "Authentication", pct: 18 },
+        { label: "Yes", pct: 42 },
+        { label: "No", pct: 38 },
+        { label: "Maybe", pct: 17 },
       ],
     },
   ],
@@ -249,31 +239,6 @@ const LandingPage: React.FC = () => {
   const dashOpacity = useTransform(dashProgress, [0, 0.2], [0.4, 1]);
   const dashScaleSpring = useSpring(dashScale, { stiffness: 60, damping: 20 });
 
-  // ── Cursor tracking ──────────────────────────────────────────────────────
-  // useEffect(() => {
-  //   const onMove = (e: MouseEvent) => { mx.current = e.clientX; my.current = e.clientY; };
-  //   window.addEventListener("mousemove", onMove);
-
-  //   const animate = () => {
-  //     rx.current += (mx.current - rx.current) * 0.12;
-  //     ry.current += (my.current - ry.current) * 0.12;
-  //     if (cursorRef.current) {
-  //       cursorRef.current.style.left = `${mx.current}px`;
-  //       cursorRef.current.style.top = `${my.current}px`;
-  //     }
-  //     if (ringRef.current) {
-  //       ringRef.current.style.left = `${rx.current}px`;
-  //       ringRef.current.style.top = `${ry.current}px`;
-  //     }
-  //     rafRef.current = requestAnimationFrame(animate);
-  //   };
-  //   rafRef.current = requestAnimationFrame(animate);
-
-  //   return () => {
-  //     window.removeEventListener("mousemove", onMove);
-  //     cancelAnimationFrame(rafRef.current);
-  //   };
-  // }, []);
   useEffect(() => {
   const onMove = (e: MouseEvent) => {
     mx.current = e.clientX;
@@ -351,12 +316,6 @@ const LandingPage: React.FC = () => {
     const id = scheduleNext();
     return () => clearTimeout(id);
   }, []);
-
-  // ── Hover helpers ────────────────────────────────────────────────────────
-  // const onHoverEnter = useCallback(() => setCursorHover(true), []);
-  // const onHoverLeave = useCallback(() => setCursorHover(false), []);
-
-  // const hoverProps = { onMouseEnter: onHoverEnter, onMouseLeave: onHoverLeave };
 
   // ── Theme slider position ────────────────────────────────────────────────
   const sliderLeft = theme === "light" ? "4px" : "calc(50% + 2px)";
@@ -473,7 +432,7 @@ const LandingPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           >
-            Create, share, and collect feedback — watch responses roll in live as they happen.
+            Create, share, and collect feedback, watch responses roll in live as they happen.
             No refresh. No waiting. Pure signal.
           </motion.p>
 
@@ -533,7 +492,7 @@ const LandingPage: React.FC = () => {
               <div style={{ padding: "24px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                   <div>
-                    <div className="lp-mock-main-title">What is your go-to state management tool for real-time apps?</div>
+                    <div className="lp-mock-main-title">Is HTTP stateless?</div>
                     <div className="lp-stat-label" style={{ marginTop: "4px" }}>Expires in 15m</div>
                   </div>
                   <div className="lp-live-badge">
@@ -585,7 +544,7 @@ const LandingPage: React.FC = () => {
           <h2 className="lp-section-h2">Built for real feedback,<br />not just data collection.</h2>
           <p className="lp-section-sub">
             PulseBoard is the only tool where your audience can respond and you can watch
-            the results shift in real time — all in one link.
+            the results shift in real time all in one link.
           </p>
         </motion.div>
 

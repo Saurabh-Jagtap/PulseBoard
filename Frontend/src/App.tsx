@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useSearchParams, useNavigate } from "react-router-dom";
 import { SignIn, SignUp, useAuth } from "@clerk/react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useAuthFetch } from "./hooks/useAuthFetch.js";
 import Dashboard from "./pages/Dashboard.js";
 import CreatePoll from "./pages/CreatePoll.js";
@@ -98,7 +98,7 @@ function SignUpPage() {
       <SignUp
         routing="path"
         path="/sign-up"
-        fallbackRedirectUrl={redirectTo}
+        fallbackRedirectUrl='/dashboard'
         signInUrl={`/sign-in?redirect=${encodeURIComponent(redirectTo)}`}
       />
     </div>
@@ -114,20 +114,20 @@ function useAuthHandler() {
   const authFetch = useAuthFetch();
   const navigate = useNavigate();
 
+  const hasHandledAuth = useRef(false);
+
   useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
+    if (!isLoaded || !isSignedIn || hasHandledAuth.current) return;
 
-    const destination = consumeRedirect(); // read before async work
+    hasHandledAuth.current = true;
 
-    // Sync first — always. Upsert is idempotent so safe to call every sign-in.
+    const destination = consumeRedirect();
+
     authFetch
       .post("/api/users/sync")
-      .catch(console.error) // don't block redirect if sync fails
+      .catch(console.error)
       .finally(() => {
-        // Navigate only after sync attempt completes
-        if (destination) {
-          navigate(destination, { replace: true });
-        }
+        navigate(destination || "/dashboard", { replace: true });
       });
   }, [isSignedIn, isLoaded]);
 }
