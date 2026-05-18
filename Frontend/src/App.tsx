@@ -1,6 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate, useSearchParams, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { SignIn, SignUp, useAuth } from "@clerk/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useAuthFetch } from "./hooks/useAuthFetch.js";
 import Dashboard from "./pages/Dashboard.js";
 import CreatePoll from "./pages/CreatePoll.js";
@@ -9,23 +9,10 @@ import Analytics from "./pages/Analytics.js";
 import PollResults from "./pages/PollResults.js";
 import LandingPage from "./pages/LandingPage.js";
 
-// ----- Constants -----
-const REDIRECT_KEY = "pb_post_auth_redirect";
-
-// ----- Helpers -----
-function saveRedirect(path: string) {
-  sessionStorage.setItem(REDIRECT_KEY, path);
-}
-
-function consumeRedirect(): string | null {
-  const val = sessionStorage.getItem(REDIRECT_KEY);
-  if (val) sessionStorage.removeItem(REDIRECT_KEY);
-  return val;
-}
-
 // ----- Protected Route -----
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isSignedIn, isLoaded } = useAuth();
+  const location = useLocation();
 
   if (!isLoaded) {
     return (
@@ -39,25 +26,18 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!isSignedIn) return <Navigate to="/sign-in" replace />;
+  // CRITICAL FIX: Append the targeted route path as a query param so we don't lose it
+  if (!isSignedIn) {
+    return <Navigate to={`/sign-in?redirect=${encodeURIComponent(location.pathname)}`} replace />;
+  }
+
   return <>{children}</>;
 };
 
 // ----- Sign-in page -----
-// Reads ?redirect= from the URL and:
-// 1. Passes it to Clerk as fallbackRedirectUrl (works for login)
-// 2. Saves it to sessionStorage (survives email verification for sign-up)
 function SignInPage() {
   const [params] = useSearchParams();
   const redirectTo = params.get("redirect") ?? "/dashboard";
-
-  // Always persist to sessionStorage so the post-auth handler in App
-  // can pick it up regardless of whether it was login or sign-up
-  useEffect(() => {
-    if (redirectTo && redirectTo !== "/dashboard") {
-      saveRedirect(redirectTo);
-    }
-  }, [redirectTo]);
 
   return (
     <div style={{
@@ -67,9 +47,7 @@ function SignInPage() {
       <SignIn
         routing="path"
         path="/sign-in"
-        // For returning users: Clerk reads this and redirects immediately
-        fallbackRedirectUrl={redirectTo}
-        // When "Don't have an account?" is clicked, preserve the redirect param
+        fallbackRedirectUrl={redirectTo} // Clerk handles routing directly to the target page smoothly
         signUpUrl={`/sign-up?redirect=${encodeURIComponent(redirectTo)}`}
       />
     </div>
@@ -81,15 +59,6 @@ function SignUpPage() {
   const [params] = useSearchParams();
   const redirectTo = params.get("redirect") ?? "/dashboard";
 
-  // Same persistence — after email verification Clerk will land back
-  // on /sign-up (or /dashboard), and our App-level handler will pick
-  // up sessionStorage and navigate to the intended destination
-  useEffect(() => {
-    if (redirectTo && redirectTo !== "/dashboard") {
-      saveRedirect(redirectTo);
-    }
-  }, [redirectTo]);
-
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "center",
@@ -98,42 +67,65 @@ function SignUpPage() {
       <SignUp
         routing="path"
         path="/sign-up"
-        fallbackRedirectUrl='/dashboard'
+        fallbackRedirectUrl={redirectTo}
         signInUrl={`/sign-in?redirect=${encodeURIComponent(redirectTo)}`}
       />
     </div>
   );
 }
 
-// ----- Post-auth redirect handler -----
-// Runs once when isSignedIn flips to true.
-// Checks sessionStorage for a saved destination and navigates there.
-// This is what fixes the new-user email-verification case.
+// ----- Post-auth sync & route cleanup handler -----
 function useAuthHandler() {
   const { isSignedIn, isLoaded } = useAuth();
   const authFetch = useAuthFetch();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const hasHandledAuth = useRef(false);
+  const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "success">("idle");
 
+  // 1. ROBUST DATABASE SYNC LAYER
   useEffect(() => {
-    if (!isLoaded || !isSignedIn || hasHandledAuth.current) return;
+    if (!isLoaded) return;
 
-    hasHandledAuth.current = true;
+    if (!isSignedIn) {
+      setSyncStatus("idle");
+      return;
+    }
 
-    const destination = consumeRedirect();
+    if (isSignedIn && syncStatus === "idle") {
+      setSyncStatus("syncing");
+      
+      console.log("Synchronizing profile with backend database...");
+      authFetch
+        .post("/api/users/sync")
+        .then(() => {
+          console.log("Database user synchronization successful.");
+          setSyncStatus("success");
+        })
+        .catch((err) => {
+          console.error("Database user synchronization failed:", err);
+          setSyncStatus("idle"); // Retries smoothly on a future cycle if it drops
+        });
+    }
+  }, [isSignedIn, isLoaded, syncStatus, authFetch]);
 
-    authFetch
-      .post("/api/users/sync")
-      .catch(console.error)
-      .finally(() => {
-        navigate(destination || "/dashboard", { replace: true });
-      });
-  }, [isSignedIn, isLoaded]);
+  // 2. AUTH PAGE ROUTE GUARD
+  // If an already authenticated user manually types/visits /sign-in, bounce them out to dashboard
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+
+    const isAuthPage =
+      location.pathname.startsWith("/sign-in") ||
+      location.pathname.startsWith("/sign-up");
+
+    if (isAuthPage) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isSignedIn, isLoaded, location.pathname, navigate]);
 }
 
 function AppShell() {
-  useAuthHandler(); // single hook, correct order
+  useAuthHandler(); // Manages background sync updates seamlessly
 
   return (
     <Routes>
@@ -153,8 +145,8 @@ function AppShell() {
 // ----- Root export -----
 export default function App() {
   return (
-    <BrowserRouter>
+    // <BrowserRouter>
       <AppShell />
-    </BrowserRouter>
+    // </BrowserRouter>
   );
 }

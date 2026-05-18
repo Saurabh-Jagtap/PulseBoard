@@ -7,6 +7,7 @@ import { motion, AnimatePresence, useScroll, useTransform, useSpring, LayoutGrou
   from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import "./LandingPage.css";
+import { useAuth } from "@clerk/react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -208,6 +209,7 @@ const AnimatedNum: React.FC<{ value: number }> = ({ value }) => {
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const { isSignedIn } = useAuth();
 
   // Theme
   const [theme, setTheme] = useState<Theme>("dark");
@@ -220,7 +222,6 @@ const LandingPage: React.FC = () => {
   const rx = useRef(0);
   const ry = useRef(0);
   const rafRef = useRef<number>(0);
-  // const [cursorHover, setCursorHover] = useState(false);
 
   // Active tab in mock dashboard
   const [activeTab, setActiveTab] = useState<TabId>("polls");
@@ -389,13 +390,13 @@ const LandingPage: React.FC = () => {
 
           <motion.button
             className="lp-btn-primary"
-            onClick={() => navigate("/sign-in")}
+            onClick={() => navigate(isSignedIn ? "/dashboard" : "/sign-in")}
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.96 }}
             transition={{ type: "spring", stiffness: 400, damping: 20 }}
             
           >
-            Get started
+            {isSignedIn ? "Dashboard" : "Get Started"}
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5"
                 strokeLinecap="round" strokeLinejoin="round" />
@@ -444,7 +445,7 @@ const LandingPage: React.FC = () => {
           >
             <motion.button
               className="lp-btn-primary"
-              onClick={() => navigate("/sign-in")}
+              onClick={() => navigate(isSignedIn ? "/dashboard" : "/sign-in")}
               whileHover={{ y: -2, boxShadow: "0 12px 40px color-mix(in srgb, var(--accent) 40%, transparent)" }}
               whileTap={{ scale: 0.96 }}
               transition={{ type: "spring", stiffness: 400, damping: 20 }}
@@ -849,7 +850,7 @@ const LandingPage: React.FC = () => {
         >
           <motion.button
             className="lp-btn-primary"
-            onClick={() => navigate("/sign-in")}
+            onClick={() => navigate(isSignedIn ? "/dashboard" : "/sign-in")}
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.96 }}
             transition={{ type: "spring", stiffness: 400, damping: 20 }}

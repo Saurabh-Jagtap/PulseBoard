@@ -491,10 +491,10 @@ export default function Dashboard() {
         initial="hidden"
         animate="visible"
       >
-        <div className="pb-logo">
+        <a className="pb-logo" href="/">
           <span className="pb-logo-dot" />
           PulseBoard
-        </div>
+        </a>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <motion.button
             className="pb-btn pb-btn--primary"

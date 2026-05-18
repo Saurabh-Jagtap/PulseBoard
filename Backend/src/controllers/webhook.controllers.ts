@@ -1,8 +1,8 @@
 import type { Request, Response } from "express";
 import { Webhook } from "svix";
 import { db } from "../db/index.js";
-import { users, polls, responses } from "../db/schema.js";
-import { eq } from "drizzle-orm";
+import { users, polls, responses, answers, questions } from "../db/schema.js";
+import { eq, inArray } from "drizzle-orm";
 
 // ── Clerk event shapes ────────────────────────────────────────
 
@@ -166,32 +166,96 @@ export const handleWebhook = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
+    // try {
+    //   await db.transaction(async (tx) => {
+    //     // Step 1: Delete this user's SUBMISSIONS to other people's polls.
+    //     // These won't be caught by cascade when we delete their own polls,
+    //     // because the poll owner is someone else.
+    //     await tx
+    //       .delete(responses)
+    //       .where(eq(responses.respondentId, clerkUserId));
+
+    //     // Step 2: Delete polls they CREATED.
+    //     // Schema cascade handles: questions → options, responses on those polls → answers.
+    //     await tx
+    //       .delete(polls)
+    //       .where(eq(polls.creatorId, clerkUserId));
+
+    //     // Step 3: Delete the user row itself.
+    //     await tx
+    //       .delete(users)
+    //       .where(eq(users.clerkId, clerkUserId));
+    //   });
+
+    //   console.log(`Purged all data for user ${clerkUserId}`);
+    //   res.status(200).json({ received: true });
+    // } catch (err) {
+    //   console.error("Failed to purge user data:", err);
+    //   res.status(500).json({ error: "DB transaction failed" });
+    // }
+
     try {
       await db.transaction(async (tx) => {
-        // Step 1: Delete this user's SUBMISSIONS to other people's polls.
-        // These won't be caught by cascade when we delete their own polls,
-        // because the poll owner is someone else.
+        // 1. Gather reference IDs for the user's assets
+        const userPolls = await tx
+          .select({ id: polls.id })
+          .from(polls)
+          .where(eq(polls.creatorId, clerkUserId));
+        const pollIds = userPolls.map((p) => p.id);
+
+        const userResponses = await tx
+          .select({ id: responses.id })
+          .from(responses)
+          .where(eq(responses.respondentId, clerkUserId));
+        const userResponseIds = userResponses.map((r) => r.id);
+
+        // 2. DISARM THE CASCADES: Manually wipe out the leaf node (answers) first
+        // Clear answers submitted BY this user on any poll
+        if (userResponseIds.length > 0) {
+          await tx
+            .delete(answers)
+            .where(inArray(answers.responseId, userResponseIds));
+        }
+
+        // Clear answers submitted BY ANYONE on this user's polls
+        if (pollIds.length > 0) {
+          const userQuestions = await tx
+            .select({ id: questions.id })
+            .from(questions)
+            .where(inArray(questions.pollId, pollIds));
+          const questionIds = userQuestions.map((q) => q.id);
+
+          if (questionIds.length > 0) {
+            await tx
+              .delete(answers)
+              .where(inArray(answers.questionId, questionIds));
+          }
+        }
+
+        // 3. Parent Cleanup: Now that answers are clear, automated cascades are safe
+        // Remove submissions this user made to other people's polls
         await tx
           .delete(responses)
           .where(eq(responses.respondentId, clerkUserId));
 
-        // Step 2: Delete polls they CREATED.
-        // Schema cascade handles: questions → options, responses on those polls → answers.
-        await tx
-          .delete(polls)
-          .where(eq(polls.creatorId, clerkUserId));
+        // Remove the user's polls (cascades cleanly through questions & options now)
+        if (pollIds.length > 0) {
+          await tx
+            .delete(polls)
+            .where(inArray(polls.id, pollIds));
+        }
 
-        // Step 3: Delete the user row itself.
+        // 4. Finally, remove the user profile core record
         await tx
           .delete(users)
           .where(eq(users.clerkId, clerkUserId));
       });
 
-      console.log(`Purged all data for user ${clerkUserId}`);
+      console.log(`Successfully purged all relational data for user ${clerkUserId}`);
       res.status(200).json({ received: true });
     } catch (err) {
       console.error("Failed to purge user data:", err);
-      res.status(500).json({ error: "DB transaction failed" });
+      res.status(500).json({ error: "Internal server error" });
     }
     return;
   }
