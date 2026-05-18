@@ -201,7 +201,7 @@ function OptionRow({
             whileTap={{ scale: 0.9 }}
             aria-label="Remove option"
           >
-            ×
+            X
           </motion.button>
         )}
       </AnimatePresence>
@@ -510,10 +510,10 @@ export default function CreatePoll() {
     <div className="pb-page">
       {/* Minimal header */}
       <header className="pb-header">
-        <div className="pb-logo">
+        <a className="pb-logo" href="/">
           <span className="pb-logo-dot" />
           PulseBoard
-        </div>
+        </a>
         <motion.button
           className="pb-btn pb-btn--ghost"
           onClick={() => navigate("/dashboard")}
@@ -569,10 +569,11 @@ export default function CreatePoll() {
             )}
           </AnimatePresence>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", flexDirection: "row", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
             {/* Meta card */}
             <motion.div
               className="pb-card"
+              style={{ flex: "1 1 340px" }}
               initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05, type: "spring", stiffness: 280, damping: 26 }}
@@ -677,7 +678,8 @@ export default function CreatePoll() {
                 </motion.label>
               </div>
             </motion.div>
-
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: 16, flex: "2 1 480px" }}>
             {/* Questions */}
             <AnimatePresence mode="popLayout">
               {questions.map((q, qi) => (
@@ -755,6 +757,7 @@ export default function CreatePoll() {
                 "Create poll →"
               )}
             </motion.button>
+            </div>
           </div>
         </motion.div>
       </main>
