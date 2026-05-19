@@ -9,6 +9,8 @@ import {
 } from "framer-motion";
 import "./Analytics.css";
 
+// ─── TYPES ───────────────────────────────────────────────────────────────────
+
 interface OptionSummary {
   optionId: string;
   optionText: string;
@@ -30,13 +32,13 @@ interface Analytics {
   questions: QuestionSummary[];
 }
 
+// ─── THEME HOOK ───────────────────────────────────────────────────────────────
+
 function useTheme() {
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     if (typeof window !== "undefined") {
       return (localStorage.getItem("pb-theme") as "light" | "dark") ??
-        (window.matchMedia("(prefers-color-scheme: dark)").matches
-          ? "dark"
-          : "light");
+        (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     }
     return "light";
   });
@@ -54,7 +56,8 @@ function useTheme() {
   return { theme, toggle };
 }
 
-// ----- ANIMATED COUNTER -----
+// ─── ANIMATED COUNTER ─────────────────────────────────────────────────────────
+
 function AnimatedCounter({ value }: { value: number }) {
   const nodeRef = useRef<HTMLSpanElement>(null);
   const prevRef = useRef(value);
@@ -63,7 +66,7 @@ function AnimatedCounter({ value }: { value: number }) {
     const node = nodeRef.current;
     if (!node) return;
     const controls = animate(prevRef.current, value, {
-      duration: 0.7,
+      duration: 0.8,
       ease: [0.16, 1, 0.3, 1],
       onUpdate(v) {
         node.textContent = Math.round(v).toLocaleString();
@@ -76,32 +79,15 @@ function AnimatedCounter({ value }: { value: number }) {
   return <span ref={nodeRef}>{value.toLocaleString()}</span>;
 }
 
-// ----- LIVE BADGE WITH PULSING RING -----
+// ─── LIVE BADGE ───────────────────────────────────────────────────────────────
+
 function LiveBadge() {
   return (
-    <div
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "8px",
-        padding: "5px 12px 5px 8px",
-        borderRadius: "100px",
-        border: "1px solid var(--accent)",
-        background: "color-mix(in srgb, var(--accent) 10%, transparent)",
-        fontSize: "11px",
-        fontFamily: "'DM Sans', sans-serif",
-        fontWeight: 600,
-        letterSpacing: "0.08em",
-        textTransform: "uppercase",
-        color: "var(--accent)",
-        userSelect: "none",
-      }}
-    >
-      {/* outer ring */}
+    <div className="pb-live-badge">
       <span style={{ position: "relative", width: 12, height: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <motion.span
-          animate={{ scale: [1, 2.2], opacity: [0.6, 0] }}
-          transition={{ duration: 1.4, repeat: Infinity, ease: "easeOut" }}
+          animate={{ scale: [1, 2.4], opacity: [0.7, 0] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
           style={{
             position: "absolute",
             width: 12,
@@ -110,217 +96,162 @@ function LiveBadge() {
             background: "var(--accent)",
           }}
         />
-        <span
-          style={{
-            width: 7,
-            height: 7,
-            borderRadius: "50%",
-            background: "var(--accent)",
-            flexShrink: 0,
-          }}
-        />
+        <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--accent)", flexShrink: 0 }} />
       </span>
-      Live Stream
+      Live
     </div>
   );
 }
 
-// ----- OPTION BAR (represents one option's count + percentage) ------
-function OptionBar({
-  opt,
-  rank,
-}: {
-  opt: OptionSummary;
-  rank: number;
-  totalOptions: number;
-}) {
-  const isTop = rank === 0;
+// ─── EXPIRY RADIAL ────────────────────────────────────────────────────────────
+
+function ExpiryRadial({ expiresAt, isExpired }: { expiresAt: string; isExpired: boolean }) {
+  const expiryDate = new Date(expiresAt);
+  const now = new Date();
+
+  // Calculate progress as fraction of time elapsed from creation estimate
+  // We use a 30-day window as default reference
+  const totalMs = 30 * 24 * 60 * 60 * 1000;
+  const elapsed = now.getTime() - (expiryDate.getTime() - totalMs);
+  const rawProgress = isExpired ? 1 : Math.max(0, Math.min(elapsed / totalMs, 1));
+
+  const R = 16;
+  const C = 2 * Math.PI * R;
+  const dashOffset = C * (1 - rawProgress);
+
+  const dateLabel = isExpired
+    ? "Expired"
+    : expiryDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+
+  const timeLabel = isExpired
+    ? ""
+    : expiryDate.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 
   return (
-    <motion.div
-      layout
-      layoutId={opt.optionId}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ layout: { type: "spring", stiffness: 260, damping: 28 }, opacity: { duration: 0.25 } }}
-      style={{
-        position: "relative",
-        padding: "14px 16px",
-        borderRadius: "12px",
-        border: `1px solid ${isTop ? "var(--accent)" : "var(--border)"}`,
-        background: isTop
-          ? "color-mix(in srgb, var(--accent) 6%, var(--card))"
-          : "var(--card)",
-        overflow: "hidden",
-      }}
-    >
-      {/* rank badge */}
-      <div
-        style={{
-          position: "absolute",
-          top: 12,
-          right: 14,
-          fontFamily: "'Syne', sans-serif",
-          fontWeight: 800,
-          fontSize: "11px",
-          letterSpacing: "0.06em",
-          color: isTop ? "var(--accent)" : "var(--border)",
-        }}
-      >
-        #{rank + 1}
+    <div className="pb-expiry-track">
+      <div className={`pb-expiry-ring${isExpired ? " expired" : ""}`}>
+        <svg width="40" height="40" viewBox="0 0 40 40">
+          <circle className="pb-expiry-ring-track" cx="20" cy="20" r={R} />
+          <circle
+            className="pb-expiry-ring-fill"
+            cx="20"
+            cy="20"
+            r={R}
+            strokeDasharray={C}
+            strokeDashoffset={dashOffset}
+          />
+        </svg>
       </div>
-
-      {/* label row */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          marginBottom: "10px",
-          gap: 8,
-          paddingRight: 28,
-        }}
-      >
-        <span
-          style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: "14px",
-            fontWeight: 500,
-            color: "var(--text)",
-            lineHeight: 1.4,
-          }}
-        >
-          {opt.optionText}
-        </span>
-        <span
-          style={{
-            fontFamily: "'Syne', sans-serif",
-            fontWeight: 700,
-            fontSize: "13px",
-            color: isTop ? "var(--accent)" : "color-mix(in srgb, var(--text) 55%, transparent)",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {opt.count.toLocaleString()} · {opt.percentage}%
-        </span>
+      <div className={`pb-expiry-label${isExpired ? " expired" : ""}`}>
+        <strong>{dateLabel}</strong>
+        {timeLabel && <span>{timeLabel}</span>}
       </div>
-
-      {/* track */}
-      <div
-        style={{
-          width: "100%",
-          height: "6px",
-          borderRadius: "100px",
-          background: "var(--border)",
-          overflow: "hidden",
-        }}
-      >
-        <motion.div
-          animate={{ width: `${opt.percentage}%` }}
-          transition={{ type: "spring", stiffness: 70, damping: 15 }}
-          style={{
-            height: "100%",
-            borderRadius: "100px",
-            background: isTop
-              ? "var(--accent)"
-              : "color-mix(in srgb, var(--accent) 45%, var(--border))",
-            minWidth: opt.percentage > 0 ? "6px" : "0px",
-          }}
-        />
-      </div>
-    </motion.div>
+    </div>
   );
 }
 
-// ----- QUESTION CARD (represents one question with its options) ------
-function QuestionCard({
-  q,
-  index,
-}: {
-  q: QuestionSummary;
-  index: number;
-}) {
-  const sorted = [...q.options].sort((a, b) => b.count - a.count);
+// ─── TELEMETRY HERO CANVAS ────────────────────────────────────────────────────
 
+function TelemetryHero({
+  title,
+  totalResponses,
+  questionsCount,
+  isPublished,
+  expiresAt,
+  isExpired,
+  liveFlash,
+  liveCount,
+}: {
+  title: string;
+  totalResponses: number;
+  questionsCount: number;
+  isPublished: boolean;
+  expiresAt: string;
+  isExpired: boolean;
+  liveFlash: boolean;
+  liveCount: number | null;
+}) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      className="pb-hero"
+      initial={{ opacity: 0, y: -16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.07, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--border)",
-        borderRadius: "20px",
-        padding: "28px",
-        position: "relative",
-        overflow: "hidden",
-      }}
+      transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
     >
-      {/* subtle question index watermark */}
-      <span
-        style={{
-          position: "absolute",
-          top: -8,
-          right: 20,
-          fontFamily: "'Syne', sans-serif",
-          fontWeight: 900,
-          fontSize: "88px",
-          color: "color-mix(in srgb, var(--border) 60%, transparent)",
-          lineHeight: 1,
-          userSelect: "none",
-          pointerEvents: "none",
-        }}
-      >
-        {index + 1}
-      </span>
-
-      {/* question text */}
-      <div style={{ marginBottom: "20px", paddingRight: "60px" }}>
-        <p
-          style={{
-            fontFamily: "'Syne', sans-serif",
-            fontWeight: 700,
-            fontSize: "16px",
-            color: "var(--text)",
-            lineHeight: 1.5,
-            margin: 0,
-          }}
-        >
-          {q.questionText}
-        </p>
-        {q.isMandatory && (
-          <span
-            style={{
-              display: "inline-block",
-              marginTop: "6px",
-              padding: "2px 8px",
-              borderRadius: "4px",
-              background: "color-mix(in srgb, #FF4D00 15%, transparent)",
-              border: "1px solid color-mix(in srgb, #FF4D00 35%, transparent)",
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: "10px",
-              fontWeight: 600,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase" as const,
-              color: "#FF4D00",
-            }}
-          >
-            Required
+      {/* LEFT: title + meta */}
+      <div className="pb-hero-left">
+        <div className="pb-hero-eyebrow">
+          <span className="pb-hero-kicker">Analytics Report</span>
+          <span className={`pb-hero-status ${isPublished ? "published" : "draft"}`}>
+            {isPublished ? "● Published" : "○ Draft"}
           </span>
-        )}
+        </div>
+
+        <h1 className="pb-hero-title">{title}</h1>
+
+        <div className="pb-hero-meta-row">
+          <div className="pb-meta-chip">
+            <div className="pb-meta-chip-dot" style={{ background: "var(--pie-5)" }} />
+            <span><strong>{questionsCount}</strong> question{questionsCount !== 1 ? "s" : ""}</span>
+          </div>
+          <div className="pb-meta-chip">
+            <div className="pb-meta-chip-dot" style={{ background: isExpired ? "var(--accent)" : "var(--pie-6)" }} />
+            <span>{isExpired ? <strong style={{ color: "var(--accent)" }}>Expired</strong> : <><strong>Active</strong> until {new Date(expiresAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</>}</span>
+          </div>
+          {liveCount !== null && (
+            <div className="pb-meta-chip">
+              <LiveBadge />
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* options with FLIP layout animation */}
-      <motion.div layout style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        <AnimatePresence initial={false}>
-          {sorted.map((opt, rank) => (
-            <OptionBar key={opt.optionId} opt={opt} rank={rank} totalOptions={sorted.length} />
-          ))}
+      {/* RIGHT: cinematic response number */}
+      <div className="pb-hero-right">
+        <div className={`pb-response-canvas${liveFlash ? " pb-response-flash" : ""}`}>
+          <span className="pb-response-label">Total Responses</span>
+          <motion.div
+            className="pb-response-number"
+            animate={liveFlash ? { scale: [1, 1.04, 1] } : {}}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <AnimatedCounter value={totalResponses} />
+          </motion.div>
+        </div>
+
+        <ExpiryRadial expiresAt={expiresAt} isExpired={isExpired} />
+
+        <AnimatePresence mode="wait">
+          {isPublished ? (
+            <motion.div
+              key="pub"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'DM Sans', sans-serif", fontSize: "11px", fontWeight: 700, color: "#22C55E", letterSpacing: "0.08em", textTransform: "uppercase" }}
+            >
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E" }} />
+              Results public
+            </motion.div>
+          ) : (
+            <motion.div
+              key="live"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'DM Sans', sans-serif", fontSize: "11px", fontWeight: 700, color: "var(--muted)", letterSpacing: "0.08em", textTransform: "uppercase" }}
+            >
+              <span className="live-dot-ring" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--muted)", display: "inline-block" }} />
+              Live updating
+            </motion.div>
+          )}
         </AnimatePresence>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }
+
+// ─── REALTIME PIE CHART ───────────────────────────────────────────────────────
 
 function RealtimePieChart({
   questions,
@@ -330,321 +261,409 @@ function RealtimePieChart({
   totalResponses: number;
 }) {
   const slices = questions
-    .flatMap((question) =>
-      question.options.map((option) => ({
-        id: `${question.questionId}-${option.optionId}`,
-        label: option.optionText,
-        count: option.count,
-        percentage: option.percentage,
+    .flatMap((q) =>
+      q.options.map((o) => ({
+        id: `${q.questionId}-${o.optionId}`,
+        label: o.optionText,
+        count: o.count,
+        percentage: o.percentage,
       }))
     )
     .sort((a, b) => b.count - a.count)
     .slice(0, 6);
 
-  const activeSlices = slices.filter((slice) => slice.count > 0);
+  const activeSlices = slices.filter((s) => s.count > 0);
+
   let offset = 0;
-  const gradientStops =
-    activeSlices.length === 0
-      ? "var(--border) 0 100%"
-      : activeSlices
-        .map((slice, index) => {
-          const start = offset;
-          const size = Math.max(slice.percentage, 0);
-          offset += size;
-          const color = `var(--pie-${(index % 6) + 1})`;
-          return `${color} ${start}% ${offset}%`;
-        })
-        .join(", ");
-  const maxCount = Math.max(...slices.map((row) => row.count), 1);
+  const gradientStops = activeSlices.length === 0
+    ? "var(--border) 0 100%"
+    : activeSlices
+      .map((s, i) => {
+        const start = offset;
+        offset += Math.max(s.percentage, 0);
+        return `var(--pie-${(i % 6) + 1}) ${start}% ${offset}%`;
+      })
+      .join(", ");
 
   return (
-    <motion.aside
-      className="analytics-pie-card"
-      initial={{ opacity: 0, x: 24 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-    >
-      <div className="analytics-pie-header">
-        <div>
-          <p className="analytics-pie-kicker">Realtime Pie Chart</p>
-          <h2 className="analytics-pie-title">Response share</h2>
-        </div>
-        <div className="analytics-pie-total">
-          <AnimatedCounter value={totalResponses} />
-        </div>
-      </div>
+    <div className="pb-chart-card">
+      <p className="pb-chart-kicker">Response Share</p>
+      <h2 className="pb-chart-title">Pie Distribution</h2>
 
       {activeSlices.length === 0 ? (
-        <div className="analytics-pie-empty">No option data yet</div>
+        <div className="pb-chart-empty">No data yet</div>
       ) : (
         <>
-          <div className="analytics-pie-wrap">
+          <div className="pb-pie-wrap">
             <motion.div
-              className="analytics-pie"
-              initial={{ rotate: -90, scale: 0.92, opacity: 0 }}
+              className="pb-pie"
               animate={{
-                rotate: -90,
-                scale: 1,
-                opacity: 1,
                 background: `conic-gradient(${gradientStops})`,
+                rotate: -90,
               }}
-              transition={{ type: "spring", stiffness: 90, damping: 18 }}
+              transition={{ type: "spring", stiffness: 80, damping: 20 }}
             >
-              <div className="analytics-pie-hole">
-                <span>Total</span>
-                <strong>{totalResponses.toLocaleString()}</strong>
+              <div className="pb-pie-hole">
+                <span className="pb-pie-hole-label">Total</span>
+                <strong className="pb-pie-hole-value">
+                  <AnimatedCounter value={totalResponses} />
+                </strong>
               </div>
             </motion.div>
           </div>
 
-          <motion.div layout className="analytics-pie-legend">
+          <motion.div layout className="pb-pie-legend">
             <AnimatePresence initial={false}>
-              {slices.map((row, index) => (
+              {slices.map((row, i) => (
                 <motion.div
                   layout
                   key={row.id}
-                  className="analytics-pie-legend-row"
-                  initial={{ opacity: 0, y: 12 }}
+                  className="pb-pie-legend-row"
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
+                  exit={{ opacity: 0, y: -6 }}
                   transition={{
-                    layout: { type: "spring", stiffness: 260, damping: 28 },
+                    layout: { type: "spring", stiffness: 280, damping: 28 },
                     opacity: { duration: 0.2 },
-                    delay: index * 0.03,
+                    delay: i * 0.025,
                   }}
                 >
-                  <div className="analytics-chart-row-head">
-                    <div>
-                      <div className="analytics-chart-label">{row.label}</div>
-                    </div>
-                    <div className="analytics-chart-value">
-                      {row.count.toLocaleString()} · {row.percentage}%
-                    </div>
-                  </div>
-                  <div className="analytics-chart-track">
-                    <motion.div
-                      className="analytics-chart-fill"
-                      animate={{
-                        width: `${Math.max((row.count / maxCount) * 100, row.count > 0 ? 4 : 0)}%`,
-                      }}
-                      transition={{ type: "spring", stiffness: 80, damping: 16 }}
-                    />
-                  </div>
+                  <div
+                    className="pb-pie-legend-dot"
+                    style={{ background: `var(--pie-${(i % 6) + 1})` }}
+                  />
+                  <span className="pb-pie-legend-label">{row.label}</span>
+                  <span className="pb-pie-legend-value">
+                    {row.count.toLocaleString()} · {row.percentage}%
+                  </span>
                 </motion.div>
               ))}
             </AnimatePresence>
           </motion.div>
         </>
       )}
-    </motion.aside>
+    </div>
   );
 }
 
-// ----- LOADING STATE ------
+// ─── REALTIME VERTICAL BAR CHART ─────────────────────────────────────────────
+// Mirrors the pie chart's dramatic visual behaviour: every incoming vote
+// produces an immediately noticeable spring-animated height change on ALL bars
+// because we normalise against maxCount and animate scaleY (not height %)
+// from a bottom transform-origin, which avoids the "top bar never moves" trap.
+
+const BAR_COLORS = [
+  "var(--pie-1)",
+  "var(--pie-4)",
+  "var(--pie-5)",
+  "var(--pie-6)",
+  "var(--pie-2)",
+  "var(--pie-3)",
+];
+
+// Animates a single bar column.  We use scaleY (0→1) driven by the bar's
+// share of maxCount so every new vote re-calculates ALL bars' scale values
+// at once, producing the same kind of dramatic visual split that the pie
+// chart shows when votes arrive.
+function AnimatedBar({
+  pct,       // 0–100, bar's share of the tallest bar
+  color,
+  isTop,
+  mountDelay, // only used on the very first mount, cleared after
+}: {
+  pct: number;
+  color: string;
+  isTop: boolean;
+  mountDelay: number;
+}) {
+  // Track whether this is the first render so we can stagger only on mount.
+  const mounted = useRef(false);
+  const delay = mounted.current ? 0 : mountDelay;
+  useEffect(() => { mounted.current = true; }, []);
+
+  return (
+    <motion.div
+      className="pb-vchart-bar"
+      // scaleY animates from the bottom (transform-origin: bottom set in CSS).
+      // This is identical in principle to the pie's conic-gradient percentage:
+      // a 50/50 vote split immediately scales both bars to scaleY=1.0 & 0.5,
+      // making the difference unmissably visible.
+      animate={{ scaleY: pct / 100 }}
+      initial={{ scaleY: 0 }}
+      transition={{
+        type: "spring",
+        stiffness: 120,
+        damping: 14,
+        mass: 0.8,
+        delay,
+      }}
+      style={{
+        background: isTop
+          ? `linear-gradient(180deg, ${color} 0%, color-mix(in srgb, ${color} 60%, transparent) 100%)`
+          : `linear-gradient(180deg, ${color} 0%, color-mix(in srgb, ${color} 42%, transparent) 100%)`,
+      }}
+    />
+  );
+}
+
+function RealtimeVerticalBarChart({
+  questions,
+}: {
+  questions: QuestionSummary[];
+}) {
+  // If poll has one question: show its options.
+  // Multiple questions: show per-question vote totals.
+  const bars: { id: string; label: string; count: number; colorIdx: number }[] =
+    questions.length === 1
+      ? [...(questions[0]?.options ?? [])]
+          .sort((a, b) => b.count - a.count)
+          .map((o, i) => ({
+            id: o.optionId,
+            label: o.optionText,
+            count: o.count,
+            colorIdx: i,
+          }))
+      : questions.map((q, i) => ({
+          id: q.questionId,
+          label: `Q${i + 1}`,
+          count: q.options.reduce((s, o) => s + o.count, 0),
+          colorIdx: i,
+        }));
+
+  const isEmpty = bars.every((b) => b.count === 0);
+
+  // maxCount drives every bar's scaleY — exactly like maxCount drives the
+  // pie's conic percentages. When it changes, every bar re-animates.
+  const maxCount = Math.max(...bars.map((b) => b.count), 1);
+
+  // Y-axis tick labels (top→bottom order, reversed for display)
+  const gridLines = [1, 0.75, 0.5, 0.25, 0].map((f) => Math.round(f * maxCount));
+
+  if (isEmpty) {
+    return (
+      <div className="pb-chart-card">
+        <p className="pb-chart-kicker">Response Distribution</p>
+        <p className="pb-chart-title">Vote Columns</p>
+        <div className="pb-chart-empty">No votes recorded yet.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pb-chart-card pb-vchart-card">
+      <p className="pb-chart-kicker">Response Distribution</p>
+      <p className="pb-chart-title">Vote Columns</p>
+
+      <div className="pb-vchart-wrap">
+        {/* Y-axis */}
+        <div className="pb-vchart-yaxis">
+          {gridLines.map((v) => (
+            <span key={v} className="pb-vchart-ylabel">{v}</span>
+          ))}
+        </div>
+
+        {/* Grid + bars */}
+        <div className="pb-vchart-body">
+          {/* Horizontal gridlines */}
+          <div className="pb-vchart-grid" aria-hidden="true">
+            {gridLines.map((v) => (
+              <div key={v} className="pb-vchart-gridline" />
+            ))}
+          </div>
+
+          {/* Column bars */}
+          <div className="pb-vchart-cols">
+            {bars.map((bar, i) => {
+              const color = BAR_COLORS[bar.colorIdx % BAR_COLORS.length];
+              const isTop = bar.count === maxCount && bar.count > 0;
+              // pct is this bar's proportion of the tallest bar (0–100).
+              // Because every bar references the same maxCount, a new vote
+              // on any option recalculates ALL bars simultaneously — same as
+              // how the pie slices all redraw when totalResponses changes.
+              const pct = (bar.count / maxCount) * 100;
+
+              return (
+                <motion.div
+                  key={bar.id}
+                  className="pb-vchart-col"
+                  layout
+                  transition={{ type: "spring", stiffness: 220, damping: 26 }}
+                >
+                  {/* Floating count — animates its numeric value */}
+                  <motion.span
+                    className="pb-vchart-col-count"
+                    style={{ color }}
+                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, y: 6 }}
+                    transition={{ duration: 0.3, delay: i * 0.04 }}
+                  >
+                    <AnimatedCounter value={bar.count} />
+                  </motion.span>
+
+                  {/* Track — full height container; bar scaleY grows from bottom */}
+                  <div className="pb-vchart-track">
+                    <AnimatedBar
+                      pct={pct}
+                      color={color}
+                      isTop={isTop}
+                      mountDelay={i * 0.06}
+                    />
+                  </div>
+
+                  {/* X-axis label */}
+                  <span className="pb-vchart-xlabel">{bar.label}</span>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── OPTION BAR (inside question cards) ──────────────────────────────────────
+
+function OptionBar({ opt, rank }: { opt: OptionSummary; rank: number }) {
+  const isTop = rank === 0;
+
+  return (
+    <motion.div
+      layout
+      layoutId={opt.optionId}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        layout: { type: "spring", stiffness: 260, damping: 28 },
+        opacity: { duration: 0.22 },
+      }}
+      className={`pb-option-row${isTop ? " top" : ""}`}
+    >
+      <div className={`pb-option-rank${isTop ? " top" : " rest"}`}>#{rank + 1}</div>
+
+      <div className="pb-option-row-head">
+        <span className="pb-option-label">{opt.optionText}</span>
+        <span className={`pb-option-stats${isTop ? " top" : " rest"}`}>
+          {opt.count.toLocaleString()} · {opt.percentage}%
+        </span>
+      </div>
+
+      <div className="pb-option-track">
+        <motion.div
+          animate={{ width: `${opt.percentage}%` }}
+          transition={{ type: "spring", stiffness: 70, damping: 15 }}
+          className={isTop ? "pb-option-fill-top" : "pb-option-fill-rest"}
+          style={{ minWidth: opt.percentage > 0 ? "5px" : "0" }}
+        />
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── QUESTION CARD ────────────────────────────────────────────────────────────
+
+function QuestionCard({ q, index }: { q: QuestionSummary; index: number }) {
+  const sorted = [...q.options].sort((a, b) => b.count - a.count);
+
+  return (
+    <motion.div
+      className="pb-question-card"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        delay: index * 0.06,
+        duration: 0.45,
+        ease: [0.16, 1, 0.3, 1],
+      }}
+    >
+      <span className="pb-question-index-bg">{index + 1}</span>
+
+      <p className="pb-question-text">{q.questionText}</p>
+
+      {q.isMandatory && <span className="pb-required-badge">Required</span>}
+
+      <motion.div layout className="pb-options-list">
+        <AnimatePresence initial={false}>
+          {sorted.map((opt, rank) => (
+            <OptionBar key={opt.optionId} opt={opt} rank={rank} />
+          ))}
+        </AnimatePresence>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ─── LOADING STATE ────────────────────────────────────────────────────────────
+
 function LoadingState() {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "var(--bg)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 20,
-      }}
-    >
+    <div className="pb-loading analytics-root">
       <motion.div
+        className="pb-loading-spinner"
         animate={{ rotate: 360 }}
         transition={{ duration: 1.1, repeat: Infinity, ease: "linear" }}
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: "50%",
-          border: "3px solid var(--border)",
-          borderTopColor: "var(--accent)",
-        }}
       />
-      <p
-        style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: "14px",
-          color: "color-mix(in srgb, var(--text) 45%, transparent)",
-          letterSpacing: "0.04em",
-        }}
-      >
-        Fetching analytics…
-      </p>
+      <p className="pb-loading-text">Fetching analytics…</p>
     </div>
   );
 }
 
-// ----- ERROR STATE ------
+// ─── ERROR STATE ──────────────────────────────────────────────────────────────
+
 function ErrorState() {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "var(--bg)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 16,
-        padding: "40px 24px",
-      }}
-    >
-      <div
-        style={{
-          width: 56,
-          height: 56,
-          borderRadius: "16px",
-          background: "color-mix(in srgb, #FF4D00 12%, var(--card))",
-          border: "1px solid color-mix(in srgb, #FF4D00 30%, transparent)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "24px",
-        }}
-      >
-        ⚠
-      </div>
-      <div style={{ textAlign: "center" }}>
-        <p
-          style={{
-            fontFamily: "'Syne', sans-serif",
-            fontWeight: 700,
-            fontSize: "18px",
-            color: "var(--text)",
-            margin: "0 0 6px",
-          }}
-        >
-          Analytics unavailable
-        </p>
-        <p
-          style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: "14px",
-            color: "color-mix(in srgb, var(--text) 50%, transparent)",
-            margin: 0,
-          }}
-        >
-          Could not load poll data. Please try again.
-        </p>
-      </div>
-      <Link
-        to="/dashboard"
-        style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: "13px",
-          fontWeight: 600,
-          color: "var(--accent)",
-          textDecoration: "none",
-          padding: "8px 18px",
-          borderRadius: "8px",
-          border: "1px solid var(--accent)",
-        }}
-      >
-        ← Back to Dashboard
-      </Link>
+    <div className="pb-error analytics-root">
+      <div className="pb-error-icon">⚠</div>
+      <p className="pb-error-title">Analytics unavailable</p>
+      <p className="pb-error-sub">Could not load poll data. Please try again.</p>
+      <Link to="/dashboard" className="pb-error-link">← Back to Dashboard</Link>
     </div>
   );
 }
 
-// ----- STAT CARD (used for summary stats at the top) ------
-function StatCard({
-  label,
-  children,
-  accent = false,
+// ─── STICKY ACTION BAR ────────────────────────────────────────────────────────
+
+function StickyActionBar({
+  theme,
+  onToggleTheme,
 }: {
-  label: string;
-  children: React.ReactNode;
-  accent?: boolean;
+  theme: "light" | "dark";
+  onToggleTheme: () => void;
 }) {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <div
-      style={{
-        background: accent
-          ? "color-mix(in srgb, var(--accent) 8%, var(--card))"
-          : "var(--card)",
-        border: `1px solid ${accent ? "var(--accent)" : "var(--border)"}`,
-        borderRadius: "16px",
-        padding: "20px 22px",
-        display: "flex",
-        flexDirection: "column" as const,
-        gap: "6px",
-      }}
-    >
-      <span
-        style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: "11px",
-          fontWeight: 600,
-          letterSpacing: "0.09em",
-          textTransform: "uppercase" as const,
-          color: accent
-            ? "var(--accent)"
-            : "color-mix(in srgb, var(--text) 45%, transparent)",
-        }}
-      >
-        {label}
-      </span>
-      {children}
+    <div className={`pb-action-bar${scrolled ? " scrolled" : ""}`}>
+      <div className="pb-action-bar-inner">
+        {/* Left Side Edge */}
+        <span className="pb-logo">
+          <span className="pb-logo-dot" />
+          PulseBoard
+        </span>
+
+        {/* Right Side Edge Group */}
+        <div className="pb-action-bar-right">
+          <Link to="/dashboard" className="pb-nav-back">
+            <span style={{ fontSize: 15 }}>←</span> Dashboard
+          </Link>
+
+          <button className="pb-theme-btn" onClick={onToggleTheme} aria-label="Toggle theme">
+            {theme === "dark" ? "☀" : "◑"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
-// ----- ICON BUTTON (used for small buttons with icons, like the copy button) ------
-function IconButton({
-  onClick,
-  children,
-  variant = "default",
-}: {
-  onClick?: () => void;
-  children: React.ReactNode;
-  variant?: "default" | "primary" | "dark";
-}) {
-  const styles: Record<string, React.CSSProperties> = {
-    default: {
-      background: "var(--card)",
-      border: "1px solid var(--border)",
-      color: "var(--text)",
-    },
-    primary: {
-      background: "var(--accent)",
-      border: "1px solid var(--accent)",
-      color: "var(--accent-contrast)",
-    },
-    dark: {
-      background: "var(--text)",
-      border: "1px solid var(--text)",
-      color: "var(--bg)",
-    },
-  };
+// ─── MAIN ANALYTICS PAGE ──────────────────────────────────────────────────────
 
-  return (
-    <motion.button
-      whileHover={{ scale: 1.03 }}
-      whileTap={{ scale: 0.97 }}
-      onClick={onClick}
-      style={{
-        ...styles[variant],
-        fontFamily: "'DM Sans', sans-serif",
-        fontWeight: 600,
-        fontSize: "13px",
-        padding: "9px 18px",
-        borderRadius: "10px",
-        cursor: "pointer",
-        letterSpacing: "0.01em",
-        lineHeight: 1,
-      }}
-    >
-      {children}
-    </motion.button>
-  );
-}
-
-// ----- MAIN ANALYTICS PAGE -----
 export default function Analytics() {
   const { pollId } = useParams<{ pollId: string }>();
   const authFetch = useAuthFetch();
@@ -676,7 +695,6 @@ export default function Analytics() {
       .catch(console.error);
   });
 
-  /* ── render guards ── */
   if (loading) return <LoadingState />;
   if (hasError || !data) return <ErrorState />;
 
@@ -696,466 +714,150 @@ export default function Analytics() {
     setData((d) => (d ? { ...d, isPublished: true } : d));
   };
 
-  /* ── full render ── */
   return (
-    <>
-      {/* google fonts */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        button { appearance: none; background: none; border: none; cursor: pointer; }
-        a { text-decoration: none; }
-      `}</style>
+    <div className="analytics-root">
 
-      <div className="analytics-root">
-        {/* ── NAV BAR ── */}
-        <div
-          style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 50,
-            backdropFilter: "blur(18px)",
-            WebkitBackdropFilter: "blur(18px)",
-            background: "color-mix(in srgb, var(--bg) 80%, transparent)",
-            borderBottom: "1px solid var(--border)",
-          }}
-        >
-          <div
-            style={{
-              maxWidth: "1400px",
-              margin: "0 auto",
-              padding: "14px 24px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <Link
-              to="/dashboard"
-              style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: "13px",
-                fontWeight: 500,
-                color: "color-mix(in srgb, var(--text) 60%, transparent)",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                transition: "color 0.2s",
-              }}
-            >
-              <span style={{ fontSize: "16px" }}>←</span> Dashboard
-            </Link>
+      {/* ══ 1. PRIMARY NAVBAR — clean, always at absolute top ══ */}
+      <StickyActionBar
+        theme={theme}
+        onToggleTheme={toggle}
+      />
 
-            <div
-              style={{
-                fontFamily: "'Syne', sans-serif",
-                fontWeight: 800,
-                fontSize: "14px",
-                letterSpacing: "0.04em",
-                color: "var(--accent)",
-              }}
-            >
-              PulseBoard
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <button
-                className="pb-theme-toggle"
-                onClick={toggle}
-                title="Toggle theme"
-                aria-label="Toggle color theme"
-              >
-                {theme === "dark" ? "☀" : "◑"}
-              </button>
-              {liveCount !== null && <LiveBadge />}
-            </div>
+      {/* ══ 2. STANDALONE FLOATING ACTION BAR — below navbar, sticky on scroll ══ */}
+      <div className="pb-sub-action-bar">
+        <div className="pb-sub-action-bar-inner">
+          <div className="pb-hero-eyebrow" style={{ margin: 0, flex: 1, minWidth: 0, gap: 10 }}>
+            <span className="pb-hero-kicker">{data.title}</span>
+            <span className={`pb-hero-status ${data.isPublished ? "published" : "draft"}`}>
+              {data.isPublished ? "● Published" : "○ Draft"}
+            </span>
+            {liveCount !== null && <LiveBadge />}
           </div>
-        </div>
 
-        <div className="bento-container">
+          <div className="pb-poll-url-pill" style={{ flex: "0 1 280px" }}>
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0, opacity: 0.45 }}>
+              <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+            </svg>
+            <span className="pb-poll-url-text">{pollUrl}</span>
+          </div>
 
-          {/* ── TITLE BLOCK ── */}
-          <motion.div
-            className="span-4"
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            style={{ marginBottom: "32px" }}
-          >
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p
-                  style={{
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    letterSpacing: "0.1em",
-                    textTransform: "uppercase",
-                    color: "var(--accent)",
-                    marginBottom: "8px",
-                  }}
-                >
-                  Analytics Report
-                </p>
-                <h1
-                  style={{
-                    fontFamily: "'Syne', sans-serif",
-                    fontWeight: 900,
-                    fontSize: "clamp(22px, 4vw, 32px)",
-                    lineHeight: 1.2,
-                    color: "var(--text)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {data.title}
-                </h1>
-              </div>
-
-              {/* status pill */}
-              <div
-                style={{
-                  flexShrink: 0,
-                  padding: "6px 14px",
-                  borderRadius: "100px",
-                  border: `1px solid ${data.isPublished ? "color-mix(in srgb, #22c55e 40%, transparent)" : "var(--border)"}`,
-                  background: data.isPublished
-                    ? "color-mix(in srgb, #22c55e 10%, transparent)"
-                    : "var(--card)",
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: data.isPublished
-                    ? "#22c55e"
-                    : "color-mix(in srgb, var(--text) 50%, transparent)",
-                }}
-              >
-                {data.isPublished ? "● Published" : "○ Draft"}
-              </div>
-            </div>
-          </motion.div>
-
-          {/* ── STATS GRID ── */}
-          <motion.div
-            className="span-4"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-              gap: "12px",
-              marginBottom: "20px",
-            }}
-          >
-            {/* total responses — big hero card */}
-            <motion.div
-              animate={liveFlash ? { scale: [1, 1.03, 1] } : {}}
-              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          <div className="pb-actions-group">
+            <motion.button
+              className="pb-btn pb-btn-ghost"
+              onClick={handleCopy}
               whileHover={{ scale: 1.02 }}
-              style={{
-                background: "color-mix(in srgb, var(--accent) 9%, var(--card))",
-                border: "1px solid var(--accent)",
-                borderRadius: "16px",
-                padding: "22px 24px",
-                gridColumn: "span 1",
-              }}
+              whileTap={{ scale: 0.96 }}
             >
-              <span
-                style={{
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  letterSpacing: "0.09em",
-                  textTransform: "uppercase",
-                  color: "var(--accent)",
-                  display: "block",
-                  marginBottom: "10px",
-                }}
-              >
-                Total Responses
-              </span>
-              <div
-                style={{
-                  fontFamily: "'Syne', sans-serif",
-                  fontWeight: 900,
-                  fontSize: "48px",
-                  lineHeight: 1,
-                  color: "var(--text)",
-                }}
-              >
-                <AnimatedCounter value={totalResponses} />
-              </div>
+              <AnimatePresence mode="wait" initial={false}>
+                {copied ? (
+                  <motion.span key="done" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}>
+                    ✓ Copied
+                  </motion.span>
+                ) : (
+                  <motion.span key="copy" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}>
+                    Copy link
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
 
-              {/* THE UPDATED STATUS LOGIC */}
-              <div style={{ marginTop: "12px" }}>
-                <AnimatePresence mode="wait">
-                  {data.isPublished ? (
-                    <motion.div
-                      key="published"
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -5 }}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        fontFamily: "'DM Sans', sans-serif",
-                        fontSize: "12px",
-                        color: "var(--accent)",
-                        fontWeight: 700,
-                      }}
-                    >
-                      <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--accent)" }} />
-                      RESULTS PUBLISHED
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="live"
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -5 }}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        fontFamily: "'DM Sans', sans-serif",
-                        fontSize: "12px",
-                        color: "#22c55e",
-                        fontWeight: 700,
-                      }}
-                    >
-                      <span className="live-dot" style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#22c55e" }} />
-                      LIVE UPDATING
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </motion.div>
+            {!data.isPublished && (
+              <motion.button
+                className="pb-btn pb-btn-primary"
+                onClick={handlePublish}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.96 }}
+              >
+                Publish results
+              </motion.button>
+            )}
 
-            {/* questions count */}
-            <StatCard label="Questions">
-              <span
-                style={{
-                  fontFamily: "'Syne', sans-serif",
-                  fontWeight: 800,
-                  fontSize: "36px",
-                  lineHeight: 1,
-                  color: "var(--text)",
-                }}
-              >
-                {data.questions.length}
-              </span>
-            </StatCard>
-
-            {/* expiry */}
-            <StatCard label="Expires" accent={isExpired}>
-              <span
-                style={{
-                  fontFamily: "'Syne', sans-serif",
-                  fontWeight: 700,
-                  fontSize: "15px",
-                  color: isExpired ? "#FF4D00" : "var(--text)",
-                  lineHeight: 1.3,
-                }}
-              >
-                {isExpired ? "Expired" : expiryDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
-              </span>
-              <span
-                style={{
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: "11px",
-                  color: "color-mix(in srgb, var(--text) 45%, transparent)",
-                }}
-              >
-                {isExpired ? "" : expiryDate.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
-              </span>
-            </StatCard>
-          </motion.div>
-
-          <motion.section
-            className="span-4 analytics-insight-grid"
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.14, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <div className="analytics-question-column">
-              {/* ── DIVIDER LABEL ── */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  marginBottom: "24px",
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "'Syne', sans-serif",
-                    fontWeight: 800,
-                    fontSize: "12px",
-                    letterSpacing: "0.12em",
-                    textTransform: "uppercase",
-                    color: "color-mix(in srgb, var(--text) 40%, transparent)",
-                  }}
+            {data.isPublished && (
+              <Link to={`/poll/${data.pollId}/results`}>
+                <motion.span
+                  className="pb-btn pb-btn-solid"
+                  style={{ display: "inline-flex" }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.96 }}
                 >
-                  Question Breakdown
-                </span>
-                <div
-                  style={{
-                    flex: 1,
-                    height: "1px",
-                    background: "var(--border)",
-                  }}
-                />
-                <span
-                  style={{
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: "12px",
-                    color: "color-mix(in srgb, var(--text) 40%, transparent)",
-                  }}
-                >
-                  {data.questions.length} total
-                </span>
-              </div>
-
-              {/* ── QUESTION CARDS ── */}
-              {data.questions.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  style={{
-                    background: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "20px",
-                    padding: "60px 32px",
-                    textAlign: "center",
-                  }}
-                >
-                  <p
-                    style={{
-                      fontFamily: "'Syne', sans-serif",
-                      fontWeight: 700,
-                      fontSize: "18px",
-                      color: "var(--text)",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    No questions yet
-                  </p>
-                  <p
-                    style={{
-                      fontFamily: "'DM Sans', sans-serif",
-                      fontSize: "14px",
-                      color: "color-mix(in srgb, var(--text) 50%, transparent)",
-                    }}
-                  >
-                    This poll doesn't have any questions with responses.
-                  </p>
-                </motion.div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                  {data.questions.map((q, i) => (
-                    <QuestionCard key={q.questionId} q={q} index={i} />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <RealtimePieChart questions={data.questions} totalResponses={totalResponses} />
-          </motion.section>
-
-          {/* ── ACTION BAR ── */}
-          <motion.div
-            className="span-4"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              background: "var(--card)",
-              border: "1px solid var(--border)",
-              borderRadius: "16px",
-              padding: "16px 20px",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              flexWrap: "wrap",
-              marginTop: "4px",
-            }}
-          >
-            <div
-              style={{
-                flex: 1,
-                minWidth: 0,
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: "12px",
-                color: "color-mix(in srgb, var(--text) 50%, transparent)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {pollUrl}
-            </div>
-
-            <div style={{ display: "flex", gap: "8px", flexShrink: 0, flexWrap: "wrap" }}>
-              <IconButton onClick={handleCopy} variant="default">
-                {copied ? "✓ Copied" : "Copy link"}
-              </IconButton>
-
-              {!data.isPublished && (
-                <IconButton onClick={handlePublish} variant="primary">
-                  Publish results
-                </IconButton>
-              )}
-
-              {data.isPublished && (
-                <Link to={`/poll/${pollId}/results`}>
-                  <IconButton variant="dark">View public →</IconButton>
-                </Link>
-              )}
-            </div>
-          </motion.div>
-
-          {/* ── FOOTER ── */}
-          <div
-            className="span-4"
-            style={{
-              marginTop: "56px",
-              paddingTop: "24px",
-              borderTop: "1px solid var(--border)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: "12px",
-            }}
-          >
-            <span
-              style={{
-                fontFamily: "'Syne', sans-serif",
-                fontWeight: 800,
-                fontSize: "13px",
-                letterSpacing: "0.06em",
-                color: "var(--accent)",
-              }}
-            >
-              PulseBoard
-            </span>
-            <span
-              style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: "12px",
-                color: "color-mix(in srgb, var(--text) 35%, transparent)",
-              }}
-            >
-              Poll ID: {data.pollId}
-            </span>
+                  View public →
+                </motion.span>
+              </Link>
+            )}
           </div>
         </div>
       </div>
-    </>
+
+      <div className="pb-page">
+
+        {/* ══ 3. MAIN BENTO VISUALIZATION CANVAS — 50/50 equal-height split ══ */}
+        <motion.div
+          className="pb-bento-canvas"
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+        >
+          {/* LEFT: Pie chart */}
+          <div className="pb-bento-pane">
+            <RealtimePieChart
+              questions={data.questions}
+              totalResponses={totalResponses}
+            />
+          </div>
+
+          {/* RIGHT: Vertical bar chart */}
+          <div className="pb-bento-pane">
+            <RealtimeVerticalBarChart questions={data.questions} />
+          </div>
+        </motion.div>
+
+        {/* ══ 4. SECTION DIVIDER ══ */}
+        <motion.div
+          className="pb-section-divider"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.22, duration: 0.4 }}
+        >
+          <span className="pb-section-label">Question Breakdown</span>
+          <div className="pb-section-rule" />
+          <span className="pb-section-count">
+            {data.questions.length} question{data.questions.length !== 1 ? "s" : ""}
+            {" · "}
+            {totalResponses.toLocaleString()} response{totalResponses !== 1 ? "s" : ""}
+          </span>
+        </motion.div>
+
+        {/* ══ 5. QUESTION BREAKDOWN — 2-column flex-wrap grid ══ */}
+        <motion.div
+          className="pb-breakdown-grid"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.28, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        >
+          {data.questions.length === 0 ? (
+            <div className="pb-chart-empty" style={{ gridColumn: "1 / -1" }}>
+              No questions with responses yet.
+            </div>
+          ) : (
+            data.questions.map((q, i) => (
+              <QuestionCard key={q.questionId} q={q} index={i} />
+            ))
+          )}
+        </motion.div>
+
+        {/* ══ FOOTER ══ */}
+        <motion.div
+          className="pb-footer"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.38, duration: 0.5 }}
+        >
+          <span className="pb-footer-brand">PulseBoard</span>
+          <span className="pb-footer-id">Poll ID: {data.pollId}</span>
+        </motion.div>
+
+      </div>
+    </div>
   );
 }

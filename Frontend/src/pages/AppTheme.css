@@ -151,19 +151,20 @@ h1, h2, h3, .heading {
    ============================================================ */
 
 .pb-header {
-  background: var(--card);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
   border-bottom: 1px solid var(--border);
-  padding: 0 32px;
-  height: 64px;
+  padding: 0 48px;
+  height: 68px;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   position: sticky;
   top: 0;
   z-index: 100;
-  transition: background 0.3s ease, border-color 0.3s ease;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  transition: background 0.45s ease, border-color 0.45s ease;
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
 }
 
 .pb-logo {
@@ -736,7 +737,7 @@ h1, h2, h3, .heading {
 
 @media (max-width: 640px) {
   .pb-header {
-    padding: 0 16px;
+    padding: 0 20px;
   }
 
   .pb-container,

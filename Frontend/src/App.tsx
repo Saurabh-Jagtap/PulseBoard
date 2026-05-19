@@ -82,7 +82,6 @@ function useAuthHandler() {
   const location = useLocation();
 
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "success">("idle");
-
   // 1. ROBUST DATABASE SYNC LAYER
   useEffect(() => {
     if (!isLoaded) return;

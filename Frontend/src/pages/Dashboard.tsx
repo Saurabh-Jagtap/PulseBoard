@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthFetch } from "../hooks/useAuthFetch.js";
 import { UserButton } from "@clerk/react";
@@ -257,6 +257,162 @@ function EmptyIllustration() {
   );
 }
 
+// ─── Delete Confirm Modal ─────────────────────────────────────
+function DeleteConfirmModal({
+  pollTitle,
+  onConfirm,
+  onCancel,
+  isDeleting,
+}: {
+  pollTitle: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isDeleting: boolean;
+}) {
+  // Close on Escape key
+  const onCancelRef = useRef(onCancel);
+  useEffect(() => { onCancelRef.current = onCancel; });
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onCancelRef.current(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  return (
+    /* Backdrop */
+    <motion.div
+      key="delete-modal-backdrop"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      onClick={onCancel}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 200,
+        background: "rgba(0,0,0,0.45)",
+        backdropFilter: "blur(4px)",
+        WebkitBackdropFilter: "blur(4px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0 16px",
+      }}
+    >
+      {/* Dialog panel — stop click propagation so it doesn't close */}
+      <motion.div
+        key="delete-modal-panel"
+        initial={{ opacity: 0, scale: 0.92, y: 24 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.94, y: 16 }}
+        transition={{ type: "spring", stiffness: 340, damping: 28 }}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "var(--card)",
+          border: "1px solid var(--border)",
+          borderRadius: 20,
+          padding: "32px 28px 24px",
+          width: "100%",
+          maxWidth: 400,
+          boxShadow: "0 24px 64px -12px rgba(0,0,0,0.35)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 0,
+        }}
+      >
+        {/* Icon */}
+        <div
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 12,
+            background: "color-mix(in srgb, #e53e3e 12%, transparent)",
+            border: "1px solid color-mix(in srgb, #e53e3e 28%, transparent)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: 18,
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e53e3e" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+            <path d="M10 11v6M14 11v6" />
+            <path d="M9 6V4h6v2" />
+          </svg>
+        </div>
+
+        {/* Text */}
+        <p
+          style={{
+            fontFamily: "'Syne', sans-serif",
+            fontWeight: 800,
+            fontSize: 17,
+            color: "var(--text)",
+            marginBottom: 8,
+            letterSpacing: "-0.02em",
+          }}
+        >
+          Delete this poll?
+        </p>
+        <p
+          style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: 14,
+            color: "var(--muted)",
+            lineHeight: 1.55,
+            marginBottom: 28,
+          }}
+        >
+          <strong style={{ color: "var(--text)", fontWeight: 600 }}>"{pollTitle}"</strong> will be permanently deleted along with all its responses. This cannot be undone.
+        </p>
+
+        {/* Actions */}
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <motion.button
+            className="pb-btn pb-btn--ghost"
+            onClick={onCancel}
+            disabled={isDeleting}
+            whileTap={{ scale: 0.96 }}
+            style={{ fontSize: 13 }}
+          >
+            Cancel
+          </motion.button>
+          <motion.button
+            className="pb-btn"
+            onClick={onConfirm}
+            disabled={isDeleting}
+            whileTap={{ scale: 0.96 }}
+            style={{
+              fontSize: 13,
+              background: "#e53e3e",
+              color: "#fff",
+              border: "1px solid #e53e3e",
+              opacity: isDeleting ? 0.65 : 1,
+              minWidth: 90,
+              justifyContent: "center",
+            }}
+          >
+            {isDeleting ? (
+              <motion.span
+                animate={{ rotate: 360 }}
+                transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                style={{ display: "inline-block" }}
+              >
+                ◌
+              </motion.span>
+            ) : (
+              "Delete"
+            )}
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ─── Poll Card ─────────────────────────────────────────────────
 interface PollCardProps {
   poll: Poll;
@@ -269,6 +425,7 @@ interface PollCardProps {
 function PollCard({ poll, onCopyLink, onPublish, onDelete, copied }: PollCardProps) {
   const [publishing, setPublishing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const navigate = useNavigate();
   const expired = new Date() > new Date(poll.expiresAt);
 
@@ -281,11 +438,12 @@ function PollCard({ poll, onCopyLink, onPublish, onDelete, copied }: PollCardPro
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm(`Delete "${poll.title}"? This cannot be undone.`)) return;
+  const handleDelete = () => setShowDeleteModal(true);
+
+  const confirmDelete = async () => {
     setDeleting(true);
     try { await onDelete(poll.id); }
-    finally { setDeleting(false); }
+    finally { setDeleting(false); setShowDeleteModal(false); }
   };
 
   const relativeDate = (dateStr: string) => {
@@ -301,141 +459,155 @@ function PollCard({ poll, onCopyLink, onPublish, onDelete, copied }: PollCardPro
   };
 
   return (
-    <motion.div
-      className="pb-poll-card"
-      variants={cardVariants}
-      whileHover={{
-        y: -3,
-        boxShadow: "var(--shadow-lifted)",
-        transition: { type: "spring", stiffness: 400, damping: 28 },
-      }}
-      layout
-    >
-      <div style={{ minWidth: 0 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            marginBottom: 6,
-            flexWrap: "wrap",
-          }}
-        >
-          <h3 className="pb-poll-card__title">{poll.title}</h3>
-          <span
-            className={`pb-pill ${expired ? "pb-pill--inactive" : "pb-pill--active"
-              }`}
+    <>
+      <motion.div
+        className="pb-poll-card"
+        variants={cardVariants}
+        whileHover={{
+          y: -3,
+          boxShadow: "var(--shadow-lifted)",
+          transition: { type: "spring", stiffness: 400, damping: 28 },
+        }}
+        layout
+      >
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 6,
+              flexWrap: "wrap",
+            }}
           >
+            <h3 className="pb-poll-card__title">{poll.title}</h3>
             <span
-              style={{
-                width: 5,
-                height: 5,
-                borderRadius: "50%",
-                background: "currentColor",
-                display: "inline-block",
-              }}
-            />
-            {expired ? "Expired" : "Live"}
-          </span>
-          {poll.isPublished && (
-            <span className="pb-pill pb-pill--inactive">Published</span>
-          )}
-        </div>
-        <div className="pb-poll-card__meta">
-          <span>Created {relativeDate(poll.createdAt)}</span>
-          {!expired && (
-            <span>
-              Expires{" "}
-              {new Date(poll.expiresAt).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-              })}
+              className={`pb-pill ${expired ? "pb-pill--inactive" : "pb-pill--active"
+                }`}
+            >
+              <span
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: "50%",
+                  background: "currentColor",
+                  display: "inline-block",
+                }}
+              />
+              {expired ? "Expired" : "Live"}
             </span>
-          )}
+            {poll.isPublished && (
+              <span className="pb-pill pb-pill--inactive">Published</span>
+            )}
+          </div>
+          <div className="pb-poll-card__meta">
+            <span>Created {relativeDate(poll.createdAt)}</span>
+            {!expired && (
+              <span>
+                Expires{" "}
+                {new Date(poll.expiresAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                })}
+              </span>
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="pb-poll-card__actions">
-        {/* ----- COPY BUTTON ----- */}
-        <motion.button
-          className="pb-btn pb-btn--ghost"
-          onClick={() => onCopyLink(poll.id)}
-          whileTap={{ scale: 0.95 }}
-          style={{
-            fontSize: 13,
-            color: copied ? "var(--accent)" : "inherit",
-            borderColor: copied ? "var(--accent)" : "transparent"
-          }}
-          title="Copy shareable link"
-        >
-          {copied ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          ) : (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-            </svg>
-          )}
-          {copied ? "Copied!" : "Copy"}
-        </motion.button>
-
-        <motion.button
-          className="pb-btn pb-btn--ghost"
-          onClick={() => navigate(`/analytics/${poll.id}`)}
-          whileTap={{ scale: 0.95 }}
-          style={{ fontSize: 13 }}
-        >
-          Results
-        </motion.button>
-
-        {/* ----- PUBLISH BUTTON ----- */}
-        {!poll.isPublished && (
+        <div className="pb-poll-card__actions">
+          {/* ----- COPY BUTTON ----- */}
           <motion.button
-            className="pb-btn pb-btn--primary"
-            onClick={handlePublish}
-            disabled={publishing}
-            whileTap={{ scale: 0.96 }}
+            className="pb-btn pb-btn--ghost"
+            onClick={() => onCopyLink(poll.id)}
+            whileTap={{ scale: 0.95 }}
+            style={{
+              fontSize: 13,
+              color: copied ? "var(--accent)" : "inherit",
+              borderColor: copied ? "var(--accent)" : "transparent"
+            }}
+            title="Copy shareable link"
+          >
+            {copied ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+            )}
+            {copied ? "Copied!" : "Copy"}
+          </motion.button>
+
+          <motion.button
+            className="pb-btn pb-btn--ghost"
+            onClick={() => navigate(`/analytics/${poll.id}`)}
+            whileTap={{ scale: 0.95 }}
             style={{ fontSize: 13 }}
           >
-            {publishing ? "Publishing…" : "Publish"}
+            Results
           </motion.button>
-        )}
 
-        {/* ----- DELETE BUTTON ----- */}
-        <motion.button
-          className="pb-btn pb-btn--ghost"
-          onClick={handleDelete}
-          disabled={deleting}
-          whileTap={{ scale: 0.95 }}
-          style={{
-            fontSize: 13,
-            color: deleting ? "var(--muted)" : "#e53e3e",
-            borderColor: "transparent",
-          }}
-          title="Delete poll"
-          aria-label="Delete poll"
-        >
-          {deleting ? (
-            <motion.span
-              animate={{ rotate: 360 }}
-              transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
-              style={{ display: "inline-block", fontSize: 13 }}
+          {/* ----- PUBLISH BUTTON ----- */}
+          {!poll.isPublished && (
+            <motion.button
+              className="pb-btn pb-btn--primary"
+              onClick={handlePublish}
+              disabled={publishing}
+              whileTap={{ scale: 0.96 }}
+              style={{ fontSize: 13 }}
             >
-              ◌
-            </motion.span>
-          ) : (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-              <path d="M10 11v6M14 11v6" />
-              <path d="M9 6V4h6v2" />
-            </svg>
+              {publishing ? "Publishing…" : "Publish"}
+            </motion.button>
           )}
-        </motion.button>
-      </div>
-    </motion.div>
+
+          {/* ----- DELETE BUTTON ----- */}
+          <motion.button
+            className="pb-btn pb-btn--ghost"
+            onClick={handleDelete}
+            disabled={deleting}
+            whileTap={{ scale: 0.95 }}
+            style={{
+              fontSize: 13,
+              color: deleting ? "var(--muted)" : "#e53e3e",
+              borderColor: "transparent",
+            }}
+            title="Delete poll"
+            aria-label="Delete poll"
+          >
+            {deleting ? (
+              <motion.span
+                animate={{ rotate: 360 }}
+                transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                style={{ display: "inline-block", fontSize: 13 }}
+              >
+                ◌
+              </motion.span>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                <path d="M10 11v6M14 11v6" />
+                <path d="M9 6V4h6v2" />
+              </svg>
+            )}
+
+          </motion.button>
+        </div>
+      </motion.div>
+
+      <AnimatePresence>
+        {showDeleteModal && (
+          <DeleteConfirmModal
+            pollTitle={poll.title}
+            onConfirm={confirmDelete}
+            onCancel={() => setShowDeleteModal(false)}
+            isDeleting={deleting}
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
@@ -483,13 +655,14 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="pb-page">
+    <div className="pb-page" style={{ maxWidth: "none" }}>
       {/* Header */}
       <motion.header
         className="pb-header"
         variants={headerVariants}
         initial="hidden"
         animate="visible"
+        style={{ maxWidth: "none", width: "100%", boxSizing: "border-box" }}
       >
         <a className="pb-logo" href="/">
           <span className="pb-logo-dot" />

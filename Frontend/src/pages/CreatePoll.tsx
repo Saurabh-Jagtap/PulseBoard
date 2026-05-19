@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthFetch } from "../hooks/useAuthFetch.js";
 import {
@@ -7,6 +7,32 @@ import {
   useReducedMotion,
   type Variants,
 } from "framer-motion";
+
+// ─── Theme hook ──────────────────────────────────────────────
+function useTheme() {
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("pb-theme") as "light" | "dark") ??
+        (window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light");
+    }
+    return "light";
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("pb-theme", theme);
+  }, [theme]);
+
+  const toggle = useCallback(
+    () => setTheme((t) => (t === "light" ? "dark" : "light")),
+    []
+  );
+
+  return { theme, toggle };
+}
+
 
 interface OptionInput {
   optionText: string;
@@ -52,6 +78,7 @@ const optionSlideIn: Variants = {
     transition: { duration: 0.15, ease: "easeIn" },
   },
 };
+
 
 // ─── Progress Stepper ─────────────────────────────────────────
 interface StepperProps {
@@ -380,6 +407,7 @@ export default function CreatePoll() {
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
   const [focusedQuestion, setFocusedQuestion] = useState<number>(0);
+  const { theme, toggle } = useTheme();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -507,21 +535,32 @@ export default function CreatePoll() {
   };
 
   return (
-    <div className="pb-page">
+    <div className="pb-page" style={{ maxWidth: "none" }}>
       {/* Minimal header */}
-      <header className="pb-header">
+      <header className="pb-header" style={{ maxWidth: "none", width: "100%", boxSizing: "border-box" }}>
         <a className="pb-logo" href="/">
           <span className="pb-logo-dot" />
           PulseBoard
         </a>
-        <motion.button
-          className="pb-btn pb-btn--ghost"
-          onClick={() => navigate("/dashboard")}
-          whileTap={{ scale: 0.96 }}
-          style={{ fontSize: 13 }}
-        >
-          ← Back
-        </motion.button>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+          <motion.button
+            className="pb-btn pb-btn--ghost"
+            onClick={() => navigate("/dashboard")}
+            whileTap={{ scale: 0.96 }}
+            style={{ fontSize: 13 }}
+          >
+            ← Back
+          </motion.button>
+
+          <button
+            className="pb-theme-toggle"
+            onClick={toggle}
+            title="Toggle theme"
+            aria-label="Toggle color theme"
+          >
+            {theme === "dark" ? "☀" : "◑"}
+          </button>
+        </div>
       </header>
 
       <main
@@ -678,85 +717,85 @@ export default function CreatePoll() {
                 </motion.label>
               </div>
             </motion.div>
-            
+
             <div style={{ display: "flex", flexDirection: "column", gap: 16, flex: "2 1 480px" }}>
-            {/* Questions */}
-            <AnimatePresence mode="popLayout">
-              {questions.map((q, qi) => (
-                <QuestionCard
-                  key={qi}
-                  question={q}
-                  index={qi}
-                  total={questions.length}
-                  isFocused={focusedQuestion === qi}
-                  onFocus={() => setFocusedQuestion(qi)}
-                  onChange={(field, value) => updateQuestion(qi, field, value)}
-                  onOptionChange={(oi, value) => updateOption(qi, oi, value)}
-                  onAddOption={() => addOption(qi)}
-                  onRemoveOption={(oi) => removeOption(qi, oi)}
-                  onRemove={() => removeQuestion(qi)}
-                  onMoveUp={() => moveUp(qi)}
-                  onMoveDown={() => moveDown(qi)}
-                />
-              ))}
-            </AnimatePresence>
+              {/* Questions */}
+              <AnimatePresence mode="popLayout">
+                {questions.map((q, qi) => (
+                  <QuestionCard
+                    key={qi}
+                    question={q}
+                    index={qi}
+                    total={questions.length}
+                    isFocused={focusedQuestion === qi}
+                    onFocus={() => setFocusedQuestion(qi)}
+                    onChange={(field, value) => updateQuestion(qi, field, value)}
+                    onOptionChange={(oi, value) => updateOption(qi, oi, value)}
+                    onAddOption={() => addOption(qi)}
+                    onRemoveOption={(oi) => removeOption(qi, oi)}
+                    onRemove={() => removeQuestion(qi)}
+                    onMoveUp={() => moveUp(qi)}
+                    onMoveDown={() => moveDown(qi)}
+                  />
+                ))}
+              </AnimatePresence>
 
-            {/* Add question */}
-            <motion.button
-              onClick={addQuestion}
-              style={{
-                background: "transparent",
-                border: "1.5px dashed var(--border)",
-                borderRadius: 14,
-                padding: "16px 24px",
-                fontSize: 14,
-                color: "var(--muted)",
-                cursor: "pointer",
-                fontFamily: "'DM Sans', sans-serif",
-                transition: "all 0.2s ease",
-              }}
-              whileHover={{
-                borderColor: "var(--accent)",
-                color: "var(--accent)",
-                background: "var(--accent-dim)",
-              }}
-              whileTap={{ scale: 0.99 }}
-              layout
-            >
-              + Add another question
-            </motion.button>
+              {/* Add question */}
+              <motion.button
+                onClick={addQuestion}
+                style={{
+                  background: "transparent",
+                  border: "1.5px dashed var(--border)",
+                  borderRadius: 14,
+                  padding: "16px 24px",
+                  fontSize: 14,
+                  color: "var(--muted)",
+                  cursor: "pointer",
+                  fontFamily: "'DM Sans', sans-serif",
+                  transition: "all 0.2s ease",
+                }}
+                whileHover={{
+                  borderColor: "var(--accent)",
+                  color: "var(--accent)",
+                  background: "var(--accent-dim)",
+                }}
+                whileTap={{ scale: 0.99 }}
+                layout
+              >
+                + Add another question
+              </motion.button>
 
-            {/* Submit */}
-            <motion.button
-              className="pb-btn pb-btn--primary pb-btn--full"
-              onClick={handleSubmit}
-              disabled={submitting}
-              whileHover={
-                !submitting
-                  ? {
+              {/* Submit */}
+              <motion.button
+                className="pb-btn pb-btn--primary pb-btn--full"
+                onClick={handleSubmit}
+                disabled={submitting}
+                whileHover={
+                  !submitting
+                    ? {
                       scale: 1.01,
                       transition: { type: "spring", stiffness: 400, damping: 20 },
                     }
-                  : undefined
-              }
-              whileTap={!submitting ? { scale: 0.98 } : undefined}
-              layout
-            >
-              {submitting ? (
-                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <motion.span
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
-                    style={{ display: "inline-block", fontSize: 14 }}
-                  >
-                    ◌
-                  </motion.span>
-                  Creating…
-                </span>
-              ) : (
-                "Create poll →"
-              )}
-            </motion.button>
+                    : undefined
+                }
+                whileTap={!submitting ? { scale: 0.98 } : undefined}
+                layout
+              >
+                {submitting ? (
+                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <motion.span
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                      style={{ display: "inline-block", fontSize: 14 }}
+                    >
+                      ◌
+                    </motion.span>
+                    Creating…
+                  </span>
+                ) : (
+                  "Create poll →"
+                )}
+              </motion.button>
             </div>
           </div>
         </motion.div>
