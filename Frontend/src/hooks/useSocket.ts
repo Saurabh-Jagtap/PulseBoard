@@ -6,8 +6,8 @@ export const useSocket = (pollId: string, onNewResponse: (data: { totalResponses
 
   useEffect(() => {
     const socket = io(import.meta.env.VITE_API_URL, {
-      transports: ["websocket"], // 1. Skip polling, go straight to WebSockets
-      withCredentials: true,    // 2. Allow cookies/headers to pass through
+      transports: [ "polling", "websocket"], 
+      withCredentials: true,   
     });
 
     // const socket = io(import.meta.env.VITE_API_URL);

@@ -657,8 +657,8 @@ export default function Analytics() {
       .finally(() => setLoading(false));
   }, [pollId]);
 
-  /* live socket updates */
-  useSocket(pollId!, (payload) => {
+  /* live socket updates — stable callback ref prevents reconnect storms */
+  const socketCallback = useCallback((payload: { totalResponses: number }) => {
     setLiveCount(payload.totalResponses);
     setLiveFlash(true);
     setTimeout(() => setLiveFlash(false), 700);
@@ -666,7 +666,9 @@ export default function Analytics() {
       .get(`/api/analytics/${pollId}`)
       .then((r) => setData(r.data.data))
       .catch(console.error);
-  });
+  }, [pollId]); // only re-creates if pollId changes
+
+  useSocket(pollId!, socketCallback);
 
   if (loading) return <LoadingState />;
   if (hasError || !data) return <ErrorState />;

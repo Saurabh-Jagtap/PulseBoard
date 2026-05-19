@@ -8,10 +8,13 @@ export const initSocket = (server: HttpServer): void => {
     cors: {
       origin: (origin, callback) => {
         const allowed = process.env.CLIENT_URL?.replace(/\/$/, ""); // Remove trailing slash
-        if (!origin || origin === allowed || origin.endsWith(".vercel.app")) {
+        
+        const isCustomDomain = origin && (origin.endsWith("pulseboard.saurabhjagtap.tech") || origin === "http://localhost:5173");
+
+        if (!origin || origin === allowed || origin.endsWith(".vercel.app") || isCustomDomain) {
           callback(null, true);
         } else {
-          callback(new Error("CORS blocked by Socket.io"));
+          callback(new Error(`CORS blocked by Socket.io. Origin: ${origin}`));
         }
       },
       methods: ["GET", "POST"],
@@ -21,7 +24,6 @@ export const initSocket = (server: HttpServer): void => {
   });
 
   io.on("connection", (socket) => {
-    // frontend calls this to start receiving live updates for a poll
     socket.on("join-poll", (pollId: string) => {
       socket.join(`poll:${pollId}`);
     });
