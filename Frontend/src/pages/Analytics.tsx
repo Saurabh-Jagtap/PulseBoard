@@ -105,151 +105,151 @@ function LiveBadge() {
 
 // ─── EXPIRY RADIAL ────────────────────────────────────────────────────────────
 
-function ExpiryRadial({ expiresAt, isExpired }: { expiresAt: string; isExpired: boolean }) {
-  const expiryDate = new Date(expiresAt);
-  const now = new Date();
+// function ExpiryRadial({ expiresAt, isExpired }: { expiresAt: string; isExpired: boolean }) {
+//   const expiryDate = new Date(expiresAt);
+//   const now = new Date();
 
-  // Calculate progress as fraction of time elapsed from creation estimate
-  // We use a 30-day window as default reference
-  const totalMs = 30 * 24 * 60 * 60 * 1000;
-  const elapsed = now.getTime() - (expiryDate.getTime() - totalMs);
-  const rawProgress = isExpired ? 1 : Math.max(0, Math.min(elapsed / totalMs, 1));
+//   // Calculate progress as fraction of time elapsed from creation estimate
+//   // We use a 30-day window as default reference
+//   const totalMs = 30 * 24 * 60 * 60 * 1000;
+//   const elapsed = now.getTime() - (expiryDate.getTime() - totalMs);
+//   const rawProgress = isExpired ? 1 : Math.max(0, Math.min(elapsed / totalMs, 1));
 
-  const R = 16;
-  const C = 2 * Math.PI * R;
-  const dashOffset = C * (1 - rawProgress);
+//   const R = 16;
+//   const C = 2 * Math.PI * R;
+//   const dashOffset = C * (1 - rawProgress);
 
-  const dateLabel = isExpired
-    ? "Expired"
-    : expiryDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+//   const dateLabel = isExpired
+//     ? "Expired"
+//     : expiryDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
-  const timeLabel = isExpired
-    ? ""
-    : expiryDate.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+//   const timeLabel = isExpired
+//     ? ""
+//     : expiryDate.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 
-  return (
-    <div className="pb-expiry-track">
-      <div className={`pb-expiry-ring${isExpired ? " expired" : ""}`}>
-        <svg width="40" height="40" viewBox="0 0 40 40">
-          <circle className="pb-expiry-ring-track" cx="20" cy="20" r={R} />
-          <circle
-            className="pb-expiry-ring-fill"
-            cx="20"
-            cy="20"
-            r={R}
-            strokeDasharray={C}
-            strokeDashoffset={dashOffset}
-          />
-        </svg>
-      </div>
-      <div className={`pb-expiry-label${isExpired ? " expired" : ""}`}>
-        <strong>{dateLabel}</strong>
-        {timeLabel && <span>{timeLabel}</span>}
-      </div>
-    </div>
-  );
-}
+//   return (
+//     <div className="pb-expiry-track">
+//       <div className={`pb-expiry-ring${isExpired ? " expired" : ""}`}>
+//         <svg width="40" height="40" viewBox="0 0 40 40">
+//           <circle className="pb-expiry-ring-track" cx="20" cy="20" r={R} />
+//           <circle
+//             className="pb-expiry-ring-fill"
+//             cx="20"
+//             cy="20"
+//             r={R}
+//             strokeDasharray={C}
+//             strokeDashoffset={dashOffset}
+//           />
+//         </svg>
+//       </div>
+//       <div className={`pb-expiry-label${isExpired ? " expired" : ""}`}>
+//         <strong>{dateLabel}</strong>
+//         {timeLabel && <span>{timeLabel}</span>}
+//       </div>
+//     </div>
+//   );
+// }
 
 // ─── TELEMETRY HERO CANVAS ────────────────────────────────────────────────────
 
-function TelemetryHero({
-  title,
-  totalResponses,
-  questionsCount,
-  isPublished,
-  expiresAt,
-  isExpired,
-  liveFlash,
-  liveCount,
-}: {
-  title: string;
-  totalResponses: number;
-  questionsCount: number;
-  isPublished: boolean;
-  expiresAt: string;
-  isExpired: boolean;
-  liveFlash: boolean;
-  liveCount: number | null;
-}) {
-  return (
-    <motion.div
-      className="pb-hero"
-      initial={{ opacity: 0, y: -16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-    >
-      {/* LEFT: title + meta */}
-      <div className="pb-hero-left">
-        <div className="pb-hero-eyebrow">
-          <span className="pb-hero-kicker">Analytics Report</span>
-          <span className={`pb-hero-status ${isPublished ? "published" : "draft"}`}>
-            {isPublished ? "● Published" : "○ Draft"}
-          </span>
-        </div>
+// function TelemetryHero({
+//   title,
+//   totalResponses,
+//   questionsCount,
+//   isPublished,
+//   expiresAt,
+//   isExpired,
+//   liveFlash,
+//   liveCount,
+// }: {
+//   title: string;
+//   totalResponses: number;
+//   questionsCount: number;
+//   isPublished: boolean;
+//   expiresAt: string;
+//   isExpired: boolean;
+//   liveFlash: boolean;
+//   liveCount: number | null;
+// }) {
+//   return (
+//     <motion.div
+//       className="pb-hero"
+//       initial={{ opacity: 0, y: -16 }}
+//       animate={{ opacity: 1, y: 0 }}
+//       transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+//     >
+//       {/* LEFT: title + meta */}
+//       <div className="pb-hero-left">
+//         <div className="pb-hero-eyebrow">
+//           <span className="pb-hero-kicker">Analytics Report</span>
+//           <span className={`pb-hero-status ${isPublished ? "published" : "draft"}`}>
+//             {isPublished ? "● Published" : "○ Draft"}
+//           </span>
+//         </div>
 
-        <h1 className="pb-hero-title">{title}</h1>
+//         <h1 className="pb-hero-title">{title}</h1>
 
-        <div className="pb-hero-meta-row">
-          <div className="pb-meta-chip">
-            <div className="pb-meta-chip-dot" style={{ background: "var(--pie-5)" }} />
-            <span><strong>{questionsCount}</strong> question{questionsCount !== 1 ? "s" : ""}</span>
-          </div>
-          <div className="pb-meta-chip">
-            <div className="pb-meta-chip-dot" style={{ background: isExpired ? "var(--accent)" : "var(--pie-6)" }} />
-            <span>{isExpired ? <strong style={{ color: "var(--accent)" }}>Expired</strong> : <><strong>Active</strong> until {new Date(expiresAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</>}</span>
-          </div>
-          {liveCount !== null && (
-            <div className="pb-meta-chip">
-              <LiveBadge />
-            </div>
-          )}
-        </div>
-      </div>
+//         <div className="pb-hero-meta-row">
+//           <div className="pb-meta-chip">
+//             <div className="pb-meta-chip-dot" style={{ background: "var(--pie-5)" }} />
+//             <span><strong>{questionsCount}</strong> question{questionsCount !== 1 ? "s" : ""}</span>
+//           </div>
+//           <div className="pb-meta-chip">
+//             <div className="pb-meta-chip-dot" style={{ background: isExpired ? "var(--accent)" : "var(--pie-6)" }} />
+//             <span>{isExpired ? <strong style={{ color: "var(--accent)" }}>Expired</strong> : <><strong>Active</strong> until {new Date(expiresAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</>}</span>
+//           </div>
+//           {liveCount !== null && (
+//             <div className="pb-meta-chip">
+//               <LiveBadge />
+//             </div>
+//           )}
+//         </div>
+//       </div>
 
-      {/* RIGHT: cinematic response number */}
-      <div className="pb-hero-right">
-        <div className={`pb-response-canvas${liveFlash ? " pb-response-flash" : ""}`}>
-          <span className="pb-response-label">Total Responses</span>
-          <motion.div
-            className="pb-response-number"
-            animate={liveFlash ? { scale: [1, 1.04, 1] } : {}}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <AnimatedCounter value={totalResponses} />
-          </motion.div>
-        </div>
+//       {/* RIGHT: cinematic response number */}
+//       <div className="pb-hero-right">
+//         <div className={`pb-response-canvas${liveFlash ? " pb-response-flash" : ""}`}>
+//           <span className="pb-response-label">Total Responses</span>
+//           <motion.div
+//             className="pb-response-number"
+//             animate={liveFlash ? { scale: [1, 1.04, 1] } : {}}
+//             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+//           >
+//             <AnimatedCounter value={totalResponses} />
+//           </motion.div>
+//         </div>
 
-        <ExpiryRadial expiresAt={expiresAt} isExpired={isExpired} />
+//         <ExpiryRadial expiresAt={expiresAt} isExpired={isExpired} />
 
-        <AnimatePresence mode="wait">
-          {isPublished ? (
-            <motion.div
-              key="pub"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'DM Sans', sans-serif", fontSize: "11px", fontWeight: 700, color: "#22C55E", letterSpacing: "0.08em", textTransform: "uppercase" }}
-            >
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E" }} />
-              Results public
-            </motion.div>
-          ) : (
-            <motion.div
-              key="live"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'DM Sans', sans-serif", fontSize: "11px", fontWeight: 700, color: "var(--muted)", letterSpacing: "0.08em", textTransform: "uppercase" }}
-            >
-              <span className="live-dot-ring" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--muted)", display: "inline-block" }} />
-              Live updating
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </motion.div>
-  );
-}
+//         <AnimatePresence mode="wait">
+//           {isPublished ? (
+//             <motion.div
+//               key="pub"
+//               initial={{ opacity: 0, y: 4 }}
+//               animate={{ opacity: 1, y: 0 }}
+//               exit={{ opacity: 0, y: -4 }}
+//               style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'DM Sans', sans-serif", fontSize: "11px", fontWeight: 700, color: "#22C55E", letterSpacing: "0.08em", textTransform: "uppercase" }}
+//             >
+//               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E" }} />
+//               Results public
+//             </motion.div>
+//           ) : (
+//             <motion.div
+//               key="live"
+//               initial={{ opacity: 0, y: 4 }}
+//               animate={{ opacity: 1, y: 0 }}
+//               exit={{ opacity: 0, y: -4 }}
+//               style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'DM Sans', sans-serif", fontSize: "11px", fontWeight: 700, color: "var(--muted)", letterSpacing: "0.08em", textTransform: "uppercase" }}
+//             >
+//               <span className="live-dot-ring" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--muted)", display: "inline-block" }} />
+//               Live updating
+//             </motion.div>
+//           )}
+//         </AnimatePresence>
+//       </div>
+//     </motion.div>
+//   );
+// }
 
 // ─── REALTIME PIE CHART ───────────────────────────────────────────────────────
 
@@ -347,10 +347,8 @@ function RealtimePieChart({
 }
 
 // ─── REALTIME VERTICAL BAR CHART ─────────────────────────────────────────────
-// Mirrors the pie chart's dramatic visual behaviour: every incoming vote
-// produces an immediately noticeable spring-animated height change on ALL bars
-// because we normalise against maxCount and animate scaleY (not height %)
-// from a bottom transform-origin, which avoids the "top bar never moves" trap.
+// Aggregates all options across all questions into a single vertical column chart.
+// Each column rises with a spring animation on every socket update.
 
 const BAR_COLORS = [
   "var(--pie-1)",
@@ -361,83 +359,45 @@ const BAR_COLORS = [
   "var(--pie-3)",
 ];
 
-// Animates a single bar column.  We use scaleY (0→1) driven by the bar's
-// share of maxCount so every new vote re-calculates ALL bars' scale values
-// at once, producing the same kind of dramatic visual split that the pie
-// chart shows when votes arrive.
-function AnimatedBar({
-  pct,       // 0–100, bar's share of the tallest bar
-  color,
-  isTop,
-  mountDelay, // only used on the very first mount, cleared after
-}: {
-  pct: number;
-  color: string;
-  isTop: boolean;
-  mountDelay: number;
-}) {
-  // Track whether this is the first render so we can stagger only on mount.
-  const mounted = useRef(false);
-  const delay = mounted.current ? 0 : mountDelay;
-  useEffect(() => { mounted.current = true; }, []);
-
-  return (
-    <motion.div
-      className="pb-vchart-bar"
-      // scaleY animates from the bottom (transform-origin: bottom set in CSS).
-      // This is identical in principle to the pie's conic-gradient percentage:
-      // a 50/50 vote split immediately scales both bars to scaleY=1.0 & 0.5,
-      // making the difference unmissably visible.
-      animate={{ scaleY: pct / 100 }}
-      initial={{ scaleY: 0 }}
-      transition={{
-        type: "spring",
-        stiffness: 120,
-        damping: 14,
-        mass: 0.8,
-        delay,
-      }}
-      style={{
-        background: isTop
-          ? `linear-gradient(180deg, ${color} 0%, color-mix(in srgb, ${color} 60%, transparent) 100%)`
-          : `linear-gradient(180deg, ${color} 0%, color-mix(in srgb, ${color} 42%, transparent) 100%)`,
-      }}
-    />
-  );
-}
-
 function RealtimeVerticalBarChart({
   questions,
 }: {
   questions: QuestionSummary[];
 }) {
-  // If poll has one question: show its options.
-  // Multiple questions: show per-question vote totals.
-  const bars: { id: string; label: string; count: number; colorIdx: number }[] =
+  // Flatten all options across every question
+  // const allOptions = questions.flatMap((q) => q.options);
+
+  // If poll has one question: show its options. Multiple questions: show per-question totals.
+  const bars: { label: string; count: number; percentage: number; colorIdx: number }[] =
     questions.length === 1
       ? [...(questions[0]?.options ?? [])]
-          .sort((a, b) => b.count - a.count)
-          .map((o, i) => ({
-            id: o.optionId,
-            label: o.optionText,
-            count: o.count,
-            colorIdx: i,
-          }))
-      : questions.map((q, i) => ({
-          id: q.questionId,
-          label: `Q${i + 1}`,
-          count: q.options.reduce((s, o) => s + o.count, 0),
+        .sort((a, b) => b.count - a.count)
+        .map((o, i) => ({
+          label: o.optionText,
+          count: o.count,
+          percentage: o.percentage,
           colorIdx: i,
-        }));
+        }))
+      : questions.map((q, i) => {
+        const total = q.options.reduce((s, o) => s + o.count, 0);
+        const maxPct = q.options.length > 0
+          ? Math.max(...q.options.map((o) => o.percentage))
+          : 0;
+        return {
+          label: `Q${i + 1}`,
+          count: total,
+          percentage: maxPct,
+          colorIdx: i,
+        };
+      });
 
   const isEmpty = bars.every((b) => b.count === 0);
-
-  // maxCount drives every bar's scaleY — exactly like maxCount drives the
-  // pie's conic percentages. When it changes, every bar re-animates.
   const maxCount = Math.max(...bars.map((b) => b.count), 1);
 
-  // Y-axis tick labels (top→bottom order, reversed for display)
-  const gridLines = [1, 0.75, 0.5, 0.25, 0].map((f) => Math.round(f * maxCount));
+  // Y-axis gridline values
+  const gridLines = [0, 0.25, 0.5, 0.75, 1].map((f) =>
+    Math.round(f * maxCount)
+  );
 
   if (isEmpty) {
     return (
@@ -455,10 +415,12 @@ function RealtimeVerticalBarChart({
       <p className="pb-chart-title">Vote Columns</p>
 
       <div className="pb-vchart-wrap">
-        {/* Y-axis */}
+        {/* Y-axis labels */}
         <div className="pb-vchart-yaxis">
-          {gridLines.map((v) => (
-            <span key={v} className="pb-vchart-ylabel">{v}</span>
+          {[...gridLines].reverse().map((v) => (
+            <span key={v} className="pb-vchart-ylabel">
+              {v}
+            </span>
           ))}
         </div>
 
@@ -474,43 +436,54 @@ function RealtimeVerticalBarChart({
           {/* Column bars */}
           <div className="pb-vchart-cols">
             {bars.map((bar, i) => {
+              // Calculate a numerical scale fraction between 0 and 1
+              // const scaleYVal = maxCount > 0 ? bar.count / maxCount : 0;
               const color = BAR_COLORS[bar.colorIdx % BAR_COLORS.length];
-              const isTop = bar.count === maxCount && bar.count > 0;
-              // pct is this bar's proportion of the tallest bar (0–100).
-              // Because every bar references the same maxCount, a new vote
-              // on any option recalculates ALL bars simultaneously — same as
-              // how the pie slices all redraw when totalResponses changes.
-              const pct = (bar.count / maxCount) * 100;
+              const isTop = i === 0 && questions.length === 1;
 
               return (
+                /* FIX 1: Use a completely stable key (remove "+ i") 
+                  and add the 'layout' prop so columns slide horizontally when re-ordered
+                */
                 <motion.div
-                  key={bar.id}
+                  key={bar.label} // Stable key for sorting
                   className="pb-vchart-col"
-                  layout
-                  transition={{ type: "spring", stiffness: 220, damping: 26 }}
+                  layout // This makes the bars slide into new positions if sorted
+                  transition={{ type: "spring", stiffness: 200, damping: 25 }}
                 >
-                  {/* Floating count — animates its numeric value */}
+                  {/* Count label */}
                   <motion.span
                     className="pb-vchart-col-count"
-                    style={{ color }}
-                    animate={{ opacity: 1, y: 0 }}
-                    initial={{ opacity: 0, y: 6 }}
-                    transition={{ duration: 0.3, delay: i * 0.04 }}
+                    animate={{ opacity: 1 }}
+                    initial={{ opacity: 0 }}
                   >
-                    <AnimatedCounter value={bar.count} />
+                    {bar.count.toLocaleString()}
                   </motion.span>
 
-                  {/* Track — full height container; bar scaleY grows from bottom */}
+                  {/* The Bar Track */}
                   <div className="pb-vchart-track">
-                    <AnimatedBar
-                      pct={pct}
-                      color={color}
-                      isTop={isTop}
-                      mountDelay={i * 0.06}
+                    <motion.div
+                      className="pb-vchart-bar"
+                      // THIS IS THE KEY: We animate the height directly. 
+                      // Framer Motion handles the 'tween' between old height and new height automatically.
+                      animate={{ height: `${(bar.count / maxCount) * 100}%` }}
+                      initial={{ height: "0%" }} // Starts at 0 on mount
+                      transition={{
+                        type: "spring",
+                        stiffness: 100, // Slightly slower, more "bouncy/organic" feel
+                        damping: 15,
+                        mass: 1,
+                        delay: i * 0.05 // Staggered reveal
+                      }}
+                      style={{
+                        background: isTop
+                          ? `linear-gradient(180deg, ${color} 0%, color-mix(in srgb, ${color} 55%, transparent) 100%)`
+                          : `linear-gradient(180deg, ${color} 0%, color-mix(in srgb, ${color} 40%, transparent) 100%)`,
+                      }}
                     />
                   </div>
 
-                  {/* X-axis label */}
+                  {/* Labels */}
                   <span className="pb-vchart-xlabel">{bar.label}</span>
                 </motion.div>
               );
@@ -671,7 +644,7 @@ export default function Analytics() {
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [liveCount, setLiveCount] = useState<number | null>(null);
-  const [liveFlash, setLiveFlash] = useState(false);
+  const [, setLiveFlash] = useState(false);
   const [copied, setCopied] = useState(false);
   const { theme, toggle } = useTheme();
 
@@ -700,8 +673,8 @@ export default function Analytics() {
 
   const totalResponses = liveCount ?? data.totalResponses;
   const pollUrl = `${window.location.origin}/poll/${pollId}`;
-  const expiryDate = new Date(data.expiresAt);
-  const isExpired = expiryDate < new Date();
+  // const expiryDate = new Date(data.expiresAt);
+  // const isExpired = expiryDate < new Date();
 
   const handleCopy = () => {
     navigator.clipboard.writeText(pollUrl);
