@@ -1,413 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthFetch } from "../hooks/useAuthFetch.js";
-import {
-  motion,
-  AnimatePresence,
-  useReducedMotion,
-  type Variants,
-} from "framer-motion";
+import { useTheme } from "../hooks/useTheme";
+import { Stepper } from "../components/create-poll/Stepper.js";
+import { QuestionCard } from "../components/create-poll/QuestionCard.js";
+import { type QuestionInput } from "../types/createPoll.types.js";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { validatePoll } from "../utils/ValidatePoll.js";
 
-// ─── Theme hook ──────────────────────────────────────────────
-function useTheme() {
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    if (typeof window !== "undefined") {
-      return (localStorage.getItem("pb-theme") as "light" | "dark") ??
-        (window.matchMedia("(prefers-color-scheme: dark)").matches
-          ? "dark"
-          : "light");
-    }
-    return "light";
-  });
-
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("pb-theme", theme);
-  }, [theme]);
-
-  const toggle = useCallback(
-    () => setTheme((t) => (t === "light" ? "dark" : "light")),
-    []
-  );
-
-  return { theme, toggle };
-}
-
-
-interface OptionInput {
-  optionText: string;
-  displayOrder: number;
-}
-
-interface QuestionInput {
-  questionText: string;
-  isMandatory: boolean;
-  displayOrder: number;
-  options: OptionInput[];
-}
-
-// ─── Framer variants ──────────────────────────────────────────
-const slideIn: Variants = {
-  hidden: { opacity: 0, y: 18, scale: 0.98 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { type: "spring", stiffness: 320, damping: 26 },
-  },
-  exit: {
-    opacity: 0,
-    y: -12,
-    scale: 0.97,
-    transition: { duration: 0.18, ease: "easeIn" },
-  },
-};
-
-const optionSlideIn: Variants = {
-  hidden: { opacity: 0, x: -12, scale: 0.97 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    scale: 1,
-    transition: { type: "spring", stiffness: 380, damping: 28 },
-  },
-  exit: {
-    opacity: 0,
-    x: 16,
-    scale: 0.96,
-    transition: { duration: 0.15, ease: "easeIn" },
-  },
-};
-
-
-// ─── Progress Stepper ─────────────────────────────────────────
-interface StepperProps {
-  totalQuestions: number;
-  filledQuestions: number;
-  hasMeta: boolean;
-}
-
-function Stepper({ totalQuestions, filledQuestions, hasMeta }: StepperProps) {
-  const totalSteps = 2 + totalQuestions; // meta + questions + publish
-  const filledSteps = (hasMeta ? 1 : 0) + filledQuestions;
-  const progress = totalSteps > 0 ? filledSteps / totalSteps : 0;
-
-  return (
-    <div style={{ marginBottom: 28 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 8,
-        }}
-      >
-        <span
-          style={{
-            fontFamily: "'Syne', sans-serif",
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            color: "var(--muted)",
-          }}
-        >
-          Poll Builder
-        </span>
-        <span
-          style={{
-            fontSize: 11,
-            color: "var(--muted)",
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
-          {Math.round(progress * 100)}% complete
-        </span>
-      </div>
-      <div
-        style={{
-          height: 4,
-          borderRadius: 4,
-          background: "var(--track, var(--border))",
-          overflow: "hidden",
-        }}
-      >
-        <motion.div
-          style={{
-            height: "100%",
-            background: "var(--accent)",
-            borderRadius: 4,
-            transformOrigin: "left",
-          }}
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: progress }}
-          transition={{ type: "spring", stiffness: 160, damping: 24 }}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ─── Option Row ───────────────────────────────────────────────
-interface OptionRowProps {
-  option: OptionInput;
-  optionIndex: number;
-  questionIndex: number;
-  canRemove: boolean;
-  onChange: (value: string) => void;
-  onRemove: () => void;
-}
-
-function OptionRow({
-  option,
-  optionIndex,
-  canRemove,
-  onChange,
-  onRemove,
-}: OptionRowProps) {
-  return (
-    <motion.div
-      className="pb-option-row"
-      variants={optionSlideIn}
-      initial="hidden"
-      animate="visible"
-      exit="exit"
-      layout
-    >
-      <div
-        className="pb-option-handle"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <span
-          style={{
-            fontFamily: "'Syne', sans-serif",
-            fontSize: 10,
-            fontWeight: 700,
-            color: "var(--muted)",
-          }}
-        >
-          {optionIndex + 1}
-        </span>
-      </div>
-      <input
-        className="pb-input"
-        value={option.optionText}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={`Option ${optionIndex + 1}`}
-        style={{ flex: 1 }}
-      />
-      <AnimatePresence>
-        {canRemove && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0 }}
-            transition={{ type: "spring", stiffness: 400, damping: 20 }}
-            onClick={onRemove}
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 7,
-              background: "transparent",
-              border: "1px solid var(--border)",
-              color: "var(--muted)",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              fontSize: 16,
-              lineHeight: 1,
-              transition: "all 0.15s ease",
-            }}
-            whileHover={{ background: "rgba(255,77,0,0.08)", color: "#FF4D00", borderColor: "rgba(255,77,0,0.3)" }}
-            whileTap={{ scale: 0.9 }}
-            aria-label="Remove option"
-          >
-            X
-          </motion.button>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
-}
-
-// ─── Question Card ────────────────────────────────────────────
-interface QuestionCardProps {
-  question: QuestionInput;
-  index: number;
-  total: number;
-  isFocused: boolean;
-  onFocus: () => void;
-  onChange: (field: keyof QuestionInput, value: unknown) => void;
-  onOptionChange: (oi: number, value: string) => void;
-  onAddOption: () => void;
-  onRemoveOption: (oi: number) => void;
-  onRemove: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-}
-
-function QuestionCard({
-  question,
-  index,
-  total,
-  isFocused,
-  onFocus,
-  onChange,
-  onOptionChange,
-  onAddOption,
-  onRemoveOption,
-  onRemove,
-  onMoveUp,
-  onMoveDown,
-}: QuestionCardProps) {
-  return (
-    <motion.div
-      variants={slideIn}
-      initial="hidden"
-      animate="visible"
-      exit="exit"
-      layout
-      className={`pb-question-card ${isFocused ? "pb-question-card--focused" : ""}`}
-      onClick={onFocus}
-    >
-      {/* Card header */}
-      <div className="pb-question-card__header">
-        <span className="pb-question-num">Q{index + 1}</span>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {/* Move up/down */}
-          <motion.button
-            onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
-            disabled={index === 0}
-            style={{
-              width: 28, height: 28, borderRadius: 7,
-              background: "transparent", border: "1px solid var(--border)",
-              color: "var(--muted)", cursor: index === 0 ? "not-allowed" : "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              opacity: index === 0 ? 0.35 : 1, fontSize: 13,
-            }}
-            whileTap={{ scale: 0.9 }}
-            aria-label="Move question up"
-          >
-            ↑
-          </motion.button>
-          <motion.button
-            onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
-            disabled={index === total - 1}
-            style={{
-              width: 28, height: 28, borderRadius: 7,
-              background: "transparent", border: "1px solid var(--border)",
-              color: "var(--muted)", cursor: index === total - 1 ? "not-allowed" : "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              opacity: index === total - 1 ? 0.35 : 1, fontSize: 13,
-            }}
-            whileTap={{ scale: 0.9 }}
-            aria-label="Move question down"
-          >
-            ↓
-          </motion.button>
-
-          {/* Mandatory toggle */}
-          <motion.label
-            style={{
-              display: "flex", alignItems: "center", gap: 5,
-              fontSize: 12, color: question.isMandatory ? "var(--accent)" : "var(--muted)",
-              cursor: "pointer", userSelect: "none", padding: "4px 8px",
-              borderRadius: 6, border: "1px solid",
-              borderColor: question.isMandatory ? "var(--accent)" : "var(--border)",
-              background: question.isMandatory ? "var(--accent-dim)" : "transparent",
-              transition: "all 0.2s ease",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <input
-              type="checkbox"
-              checked={question.isMandatory}
-              onChange={(e) => onChange("isMandatory", e.target.checked)}
-              style={{ display: "none" }}
-            />
-            {question.isMandatory ? "★ Required" : "☆ Optional"}
-          </motion.label>
-
-          {/* Remove question */}
-          {total > 1 && (
-            <motion.button
-              onClick={(e) => { e.stopPropagation(); onRemove(); }}
-              style={{
-                width: 28, height: 28, borderRadius: 7,
-                background: "transparent", border: "1px solid var(--border)",
-                color: "var(--muted)", cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 16, lineHeight: 1,
-              }}
-              whileHover={{ background: "rgba(255,77,0,0.08)", color: "#FF4D00", borderColor: "rgba(255,77,0,0.3)" }}
-              whileTap={{ scale: 0.9 }}
-              aria-label="Remove question"
-            >
-              ×
-            </motion.button>
-          )}
-        </div>
-      </div>
-
-      {/* Question text */}
-      <input
-        className="pb-input"
-        value={question.questionText}
-        onClick={(e) => { e.stopPropagation(); onFocus(); }}
-        onChange={(e) => onChange("questionText", e.target.value)}
-        placeholder="What would you like to ask?"
-        style={{ marginBottom: 14, fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: 15 }}
-      />
-
-      {/* Options */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <AnimatePresence mode="popLayout">
-          {question.options.map((opt, oi) => (
-            <OptionRow
-              key={oi}
-              option={opt}
-              optionIndex={oi}
-              questionIndex={index}
-              canRemove={question.options.length > 2}
-              onChange={(val) => onOptionChange(oi, val)}
-              onRemove={() => onRemoveOption(oi)}
-            />
-          ))}
-        </AnimatePresence>
-      </div>
-
-      {/* Add option */}
-      <motion.button
-        onClick={(e) => { e.stopPropagation(); onAddOption(); }}
-        style={{
-          marginTop: 10, background: "transparent", border: "1.5px dashed var(--border)",
-          borderRadius: 9, padding: "8px 14px", fontSize: 13,
-          color: "var(--muted)", cursor: "pointer", width: "100%",
-          fontFamily: "'DM Sans', sans-serif", transition: "all 0.2s ease",
-        }}
-        whileHover={{ borderColor: "var(--accent)", color: "var(--accent)" }}
-        whileTap={{ scale: 0.99 }}
-        disabled={question.options.length >= 8}
-      >
-        + Add option
-      </motion.button>
-    </motion.div>
-  );
-}
-
-// ─── CreatePoll ───────────────────────────────────────────────
+// ----- CreatePoll -----
 export default function CreatePoll() {
   const authFetch = useAuthFetch();
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
   const [focusedQuestion, setFocusedQuestion] = useState<number>(0);
-  const { theme, toggle } = useTheme();
+  const { theme, toggleTheme } = useTheme();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -506,14 +113,16 @@ export default function CreatePoll() {
 
   const handleSubmit = async () => {
     setError("");
-    if (!title.trim()) return setError("Title is required");
-    if (!expiresAt) return setError("Expiry date is required");
-    if (new Date(expiresAt) <= new Date()) return setError("Expiry must be in the future");
+    const validation = validatePoll(
+      title,
+      expiresAt,
+      questions
+    );
 
-    for (const q of questions) {
-      if (!q.questionText.trim()) return setError("All questions need text");
-      if (q.options.length < 2) return setError("Each question needs at least 2 options");
-      if (q.options.some((o) => !o.optionText.trim())) return setError("All options need text");
+    if (!validation.isValid) {
+      setError(validation.error ?? "Invalid poll");
+
+      return;
     }
 
     setSubmitting(true);
@@ -554,7 +163,7 @@ export default function CreatePoll() {
 
           <button
             className="pb-theme-toggle"
-            onClick={toggle}
+            onClick={toggleTheme}
             title="Toggle theme"
             aria-label="Toggle color theme"
           >
@@ -721,21 +330,21 @@ export default function CreatePoll() {
             <div style={{ display: "flex", flexDirection: "column", gap: 16, flex: "2 1 480px" }}>
               {/* Questions */}
               <AnimatePresence mode="popLayout">
-                {questions.map((q, qi) => (
+                {questions.map((question, questionIndex) => (
                   <QuestionCard
-                    key={qi}
-                    question={q}
-                    index={qi}
+                    key={questionIndex}
+                    question={question}
+                    index={questionIndex}
                     total={questions.length}
-                    isFocused={focusedQuestion === qi}
-                    onFocus={() => setFocusedQuestion(qi)}
-                    onChange={(field, value) => updateQuestion(qi, field, value)}
-                    onOptionChange={(oi, value) => updateOption(qi, oi, value)}
-                    onAddOption={() => addOption(qi)}
-                    onRemoveOption={(oi) => removeOption(qi, oi)}
-                    onRemove={() => removeQuestion(qi)}
-                    onMoveUp={() => moveUp(qi)}
-                    onMoveDown={() => moveDown(qi)}
+                    isFocused={focusedQuestion === questionIndex}
+                    onFocus={() => setFocusedQuestion(questionIndex)}
+                    onChange={(field, value) => updateQuestion(questionIndex, field, value)}
+                    onOptionChange={(optionIndex, value) => updateOption(questionIndex, optionIndex, value)}
+                    onAddOption={() => addOption(questionIndex)}
+                    onRemoveOption={(optionIndex) => removeOption(questionIndex, optionIndex)}
+                    onRemove={() => removeQuestion(questionIndex)}
+                    onMoveUp={() => moveUp(questionIndex)}
+                    onMoveDown={() => moveDown(questionIndex)}
                   />
                 ))}
               </AnimatePresence>

@@ -25,8 +25,16 @@ export function useTheme() {
         setTheme((prev) => (prev === "light" ? "dark" : "light"));
     }, []);
 
+    const setThemeMode = useCallback(
+        (mode: "light" | "dark") => {
+            setTheme(mode);
+        },
+        []
+    );
+
     return {
         theme,
         toggleTheme,
+        setThemeMode
     };
 }
