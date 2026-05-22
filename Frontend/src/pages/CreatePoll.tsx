@@ -6,7 +6,7 @@ import { Stepper } from "../components/create-poll/Stepper.js";
 import { QuestionCard } from "../components/create-poll/QuestionCard.js";
 import { type QuestionInput } from "../types/createPoll.types.js";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { validatePoll } from "../utils/ValidatePoll.js";
+import { validatePoll } from "../utils/validatePoll.js";
 
 // ----- CreatePoll -----
 export default function CreatePoll() {
