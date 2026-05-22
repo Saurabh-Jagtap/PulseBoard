@@ -5,28 +5,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import api from "../services/api.js";
 import { useAuthFetch } from "../hooks/useAuthFetch.js";
 import CountdownTimer from "../components/CountDownTimer.js";
-
-const REDIRECT_KEY = "pb_post_auth_redirect";
-interface Option {
-  id: string;
-  optionText: string;
-}
-interface Question {
-  id: string;
-  questionText: string;
-  isMandatory: boolean;
-  options: Option[];
-}
-interface Poll {
-  id: string;
-  title: string;
-  description?: string;
-  isAnonymous: boolean;
-  isPublished: boolean;
-  isActive: boolean;
-  questions: Question[];
-  expiresAt: string;
-}
+import type { Poll } from "../types/pollRespond.types.js";
+import { validateResponses } from "../utils/validateResponses.js";
+import { Confetti } from "../components/poll/Confetti.js";
+import { VoteGate } from "../components/poll/VoteGate.js";
 
 // stable session token per browser for anonymous dedup
 const getSessionToken = (): string => {
@@ -39,261 +21,6 @@ const getSessionToken = (): string => {
   return token;
 };
 
-// ── Minimalist confetti squares on success ────────────────────────────────────
-const CONFETTI_COLORS = ["#FF4D00", "#C5FF44", "#FFB347", "#00C2FF", "#FF6EB4"];
-
-function Confetti() {
-  const pieces = Array.from({ length: 18 }, (_, i) => ({
-    id: i,
-    color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-    x: (Math.random() - 0.5) * 300,
-    y: -(Math.random() * 200 + 80),
-    rotate: Math.random() * 360,
-    size: Math.random() * 8 + 6,
-    delay: Math.random() * 0.3,
-  }));
-
-  return (
-    <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
-      {pieces.map((p) => (
-        <motion.div
-          key={p.id}
-          initial={{ x: 0, y: 0, opacity: 1, rotate: 0, scale: 1 }}
-          animate={{
-            x: p.x,
-            y: p.y,
-            opacity: 0,
-            rotate: p.rotate,
-            scale: 0.3,
-          }}
-          transition={{ duration: 1.2, delay: p.delay, ease: [0.22, 1, 0.36, 1] }}
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            width: p.size,
-            height: p.size,
-            background: p.color,
-            borderRadius: "2px",
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-// ── Login wall — shown when poll requires auth but user is not signed in ───────
-// function LoginWall({ pollTitle }: { pollTitle: string }) {
-//   return (
-//     <div
-//       style={{
-//         minHeight: "100vh",
-//         background: "var(--bg)",
-//         display: "flex",
-//         flexDirection: "column",
-//         alignItems: "center",
-//         justifyContent: "center",
-//         padding: "40px 24px",
-//         gap: "32px",
-//       }}
-//     >
-//       <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');`}</style>
-
-//       <motion.div
-//         initial={{ opacity: 0, y: 24 }}
-//         animate={{ opacity: 1, y: 0 }}
-//         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-//         style={{ textAlign: "center", maxWidth: "420px" }}
-//       >
-//         {/* lock icon */}
-//         <motion.div
-//           initial={{ scale: 0.5, opacity: 0 }}
-//           animate={{ scale: 1, opacity: 1 }}
-//           transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
-//           style={{
-//             width: "64px",
-//             height: "64px",
-//             borderRadius: "18px",
-//             background: "color-mix(in srgb, var(--accent) 12%, var(--card))",
-//             border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
-//             display: "flex",
-//             alignItems: "center",
-//             justifyContent: "center",
-//             fontSize: "28px",
-//             margin: "0 auto 24px",
-//           }}
-//         >
-//           🔒
-//         </motion.div>
-
-//         <p
-//           style={{
-//             fontFamily: "'DM Sans', sans-serif",
-//             fontSize: "11px",
-//             fontWeight: 600,
-//             letterSpacing: "0.1em",
-//             textTransform: "uppercase",
-//             color: "var(--accent)",
-//             marginBottom: "12px",
-//           }}
-//         >
-//           Sign in required
-//         </p>
-
-//         <h1
-//           style={{
-//             fontFamily: "'Syne', sans-serif",
-//             fontWeight: 800,
-//             fontSize: "clamp(20px, 4vw, 28px)",
-//             color: "var(--text)",
-//             lineHeight: 1.2,
-//             marginBottom: "12px",
-//           }}
-//         >
-//           This poll requires authentication
-//         </h1>
-
-//         <p
-//           style={{
-//             fontFamily: "'DM Sans', sans-serif",
-//             fontSize: "15px",
-//             color: "var(--muted)",
-//             lineHeight: 1.6,
-//             fontWeight: 300,
-//             marginBottom: "8px",
-//           }}
-//         >
-//           <strong style={{ color: "var(--text)", fontWeight: 500 }}>
-//             "{pollTitle}"
-//           </strong>{" "}
-//           only accepts responses from signed-in users. Please log in to continue.
-//         </p>
-//       </motion.div>
-
-//       {/* Clerk's sign-in component embedded inline */}
-//       <motion.div
-//         initial={{ opacity: 0, y: 16 }}
-//         animate={{ opacity: 1, y: 0 }}
-//         transition={{ delay: 0.25, duration: 0.5 }}
-//       >
-//         <SignIn
-//           routing="hash"
-//           forceRedirectUrl={window.location.href}
-//           signUpForceRedirectUrl={window.location.href}
-//         />
-//       </motion.div>
-//     </div>
-//   );
-// }
-
-// ── Vote Gate — shown inline when poll requires auth + user not signed in ──────
-// Shows a "sign in to vote" CTA instead of hijacking the whole page
-function VoteGate({ pollId }: { pollId: string }) {
-  const pollPath = `/poll/${pollId}`;
-
-  const handleSignInClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    // Save the destination before leaving — survives email verification
-    sessionStorage.setItem(REDIRECT_KEY, pollPath);
-    // Include it as a query param too, for returning users who skip verification
-    window.location.href = `/sign-in?redirect=${encodeURIComponent(pollPath)}`;
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      style={{
-        marginTop: "24px",
-        padding: "28px",
-        borderRadius: "16px",
-        background: "var(--card)",
-        border: "1.5px solid color-mix(in srgb, var(--accent) 35%, var(--border))",
-        textAlign: "center",
-      }}
-    >
-      <motion.div
-        initial={{ scale: 0.7, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
-        style={{
-          width: "48px",
-          height: "48px",
-          borderRadius: "14px",
-          background: "color-mix(in srgb, var(--accent) 12%, var(--card))",
-          border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "22px",
-          margin: "0 auto 16px",
-        }}
-      >
-        🔒
-      </motion.div>
-
-      <p
-        style={{
-          fontFamily: "'Syne', sans-serif",
-          fontWeight: 700,
-          fontSize: "16px",
-          color: "var(--text)",
-          marginBottom: "8px",
-        }}
-      >
-        Sign in to submit your vote
-      </p>
-
-      <p
-        style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: "13px",
-          color: "var(--muted)",
-          fontWeight: 300,
-          lineHeight: 1.6,
-          marginBottom: "20px",
-          maxWidth: "320px",
-          margin: "0 auto 20px",
-        }}
-      >
-        This poll requires authentication. You can see the questions above —
-        sign in to record your response.
-      </p>
-
-      <motion.a
-        href={`/sign-in?redirect=${encodeURIComponent(pollPath)}`}
-        onClick={handleSignInClick}
-        whileHover={{ y: -1 }}
-        whileTap={{ scale: 0.97 }}
-        transition={{ type: "spring", stiffness: 400, damping: 20 }}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "8px",
-          padding: "12px 28px",
-          borderRadius: "100px",
-          background: "var(--accent)",
-          color: "var(--bg)",
-          fontFamily: "'Syne', sans-serif",
-          fontWeight: 700,
-          fontSize: "14px",
-          letterSpacing: "0.02em",
-          textDecoration: "none",
-          transition: "box-shadow 0.2s ease",
-        }}
-      >
-        Sign in to vote
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5"
-            strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </motion.a>
-    </motion.div>
-  );
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
 export default function PollRespond() {
   const { pollId } = useParams<{ pollId: string }>();
   // const navigate   = useNavigate();
@@ -321,7 +48,7 @@ export default function PollRespond() {
       .finally(() => setLoading(false));
   }, [pollId]);
 
-  // ── guards ────────────────────────────────────────────────────────────
+  // ----- guards -----
   if (loading || !isLoaded) {
     return (
       <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -379,14 +106,7 @@ export default function PollRespond() {
       </div>
     );
   }
-
-  // ── AUTH GATE ────────────────────────────────────────────────────────
-  // Poll requires login and user is NOT signed in → show login wall
-  // if (!poll.isAnonymous && !isSignedIn) {
-  //   return <LoginWall pollTitle={poll.title} />;
-  // }
-
-  // ── Success screen ────────────────────────────────────────────────────
+  // ----- Success screen -----
   if (submitted) {
     return (
       <div
@@ -438,7 +158,7 @@ export default function PollRespond() {
     );
   }
 
-  // ── Handlers ──────────────────────────────────────────────────────────
+  // ----- Handlers -----
   const handleSelect = (questionId: string, optionId: string) => {
     setAnswers((prev) => ({ ...prev, [questionId]: optionId }));
     // clear the per-field error when the user selects an option
@@ -451,32 +171,31 @@ export default function PollRespond() {
     }
   };
 
-  const validate = (): boolean => {
-    const errors: Record<string, string> = {};
-    let valid = true;
-
-    for (const q of poll.questions) {
-      if (q.isMandatory && !answers[q.id]) {
-        errors[q.id] = "This question is required";
-        valid = false;
-      }
-    }
-
-    setFieldErrors(errors);
-
-    if (!valid) {
-      // scroll to first error
-      const firstErrorId = Object.keys(errors)[0];
-      const el = document.getElementById(`question-${firstErrorId}`);
-      el?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-
-    return valid;
-  };
-
   const handleSubmit = async () => {
     setSubmitError("");
-    if (!validate()) return;
+    const validation = validateResponses(
+      poll,
+      answers
+    );
+
+    setFieldErrors(validation.errors);
+
+    if (!validation.isValid) {
+      const firstErrorId = Object.keys(
+        validation.errors
+      )[0];
+
+      const el = document.getElementById(
+        `question-${firstErrorId}`
+      );
+
+      el?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+
+      return;
+    }
 
     const answersPayload = Object.entries(answers).map(
       ([questionId, selectedOptionId]) => ({ questionId, selectedOptionId })
@@ -505,7 +224,7 @@ export default function PollRespond() {
   const mandatoryCount = poll.questions.filter((q) => q.isMandatory).length;
   const optionalCount = poll.questions.length - mandatoryCount;
 
-  // ── Render ────────────────────────────────────────────────────────────
+  // ----- Render -----
   return (
     <div
       style={{
@@ -895,33 +614,6 @@ export default function PollRespond() {
             {Object.keys(answers).length} / {poll.questions.length} answered
           </span>
         </div>
-
-        {/* submit button */}
-        {/* <motion.button
-          onClick={handleSubmit}
-          disabled={submitting}
-          whileHover={{ y: -1 }}
-          whileTap={{ scale: 0.98 }}
-          transition={{ type: "spring", stiffness: 400, damping: 20 }}
-          style={{
-            width: "100%",
-            padding: "16px",
-            borderRadius: "14px",
-            background: submitting
-              ? "color-mix(in srgb, var(--accent) 60%, transparent)"
-              : "var(--accent)",
-            color: "var(--bg)",
-            fontFamily: "'Syne', sans-serif",
-            fontWeight: 700,
-            fontSize: "15px",
-            letterSpacing: "0.02em",
-            border: "none",
-            cursor: submitting ? "not-allowed" : "pointer",
-            transition: "background 0.2s ease",
-          }}
-        >
-          {submitting ? "Submitting…" : "Submit response"}
-        </motion.button> */}
 
         {/* submit button — or vote gate if not signed in */}
         {!poll.isAnonymous && !isSignedIn ? (
