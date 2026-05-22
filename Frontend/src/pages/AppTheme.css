@@ -146,10 +146,6 @@ h1, h2, h3, .heading {
   box-shadow: var(--shadow-accent);
 }
 
-/* ============================================================
-   Header
-   ============================================================ */
-
 .pb-header {
   background: color-mix(in srgb, var(--bg) 85%, transparent);
   border-bottom: 1px solid var(--border);
