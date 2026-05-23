@@ -1,4 +1,4 @@
-import { AnimatePresence, LayoutGroup, motion, useScroll, useSpring, useTransform} from "framer-motion";
+import { AnimatePresence, LayoutGroup, motion, useScroll, useSpring, useTransform } from "framer-motion";
 import { useRef } from "react";
 import type { MockData, TabId } from "../../types/landing.types";
 import { fadeUp } from "./motion";
@@ -24,28 +24,29 @@ const ChartBar: React.FC<{ value: number; label: string; maxValue: number }> = (
 };
 
 interface LiveDashboardPreviewProps {
-  mockData: MockData;
-  activeTab: TabId;
-  setActiveTab: React.Dispatch<React.SetStateAction<TabId>>;
-  maxBarValue: number
+    mockData: MockData;
+    activeTab: TabId;
+    setActiveTab: React.Dispatch<React.SetStateAction<TabId>>;
+    maxBarValue: number
 }
 
-const dashRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress: dashProgress } = useScroll({
-    target: dashRef,
-    offset: ["start end", "end start"],
-  });
-  const dashScale = useTransform(dashProgress, [0, 0.3, 0.7, 1], [0.92, 1, 1, 0.96]);
-  const dashBlur = useTransform(dashProgress, [0, 0.25, 0.6], [6, 0, 0]);
-  const dashOpacity = useTransform(dashProgress, [0, 0.2], [0.4, 1]);
-  const dashScaleSpring = useSpring(dashScale, { stiffness: 60, damping: 20 });
-
 export function LiveDashboardPreview({
-  mockData,
-  activeTab,
-  setActiveTab,
-  maxBarValue,
+    mockData,
+    activeTab,
+    setActiveTab,
+    maxBarValue,
 }: LiveDashboardPreviewProps) {
+
+    const dashRef = useRef<HTMLDivElement>(null);
+    const { scrollYProgress: dashProgress } = useScroll({
+        target: dashRef,
+        offset: ["start end", "end start"],
+    });
+    const dashScale = useTransform(dashProgress, [0, 0.3, 0.7, 1], [0.92, 1, 1, 0.96]);
+    const dashBlur = useTransform(dashProgress, [0, 0.25, 0.6], [6, 0, 0]);
+    const dashOpacity = useTransform(dashProgress, [0, 0.2], [0.4, 1]);
+    const dashScaleSpring = useSpring(dashScale, { stiffness: 60, damping: 20 });
+
     return (
         <section className="lp-dashboard-section" id="dashboard" ref={dashRef}>
             <div className="lp-dashboard-header">
